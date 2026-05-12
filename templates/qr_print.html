@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tracko — Печать QR-этикеток</title>
+<link rel="stylesheet" href="/static/css/tracko-ios.css">
+<style>
+/* ─── Layout ─── */
+body { background: var(--bg); }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 80px; }
+.page-title { font-size: 28px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 6px; }
+.page-sub   { font-size: 14px; color: var(--text2); margin-bottom: 24px; }
+
+/* ─── Filter Panel ─── */
+.filter-card {
+  background: var(--surface); border-radius: var(--r-lg);
+  padding: 20px; box-shadow: var(--shadow-md); margin-bottom: 20px;
+}
+.filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media(max-width:768px) { .filter-grid { grid-template-columns: 1fr 1fr; } }
+@media(max-width:480px) { .filter-grid { grid-template-columns: 1fr; } }
+.filter-grid .field { display: flex; flex-direction: column; gap: 6px; }
+.filter-grid label { font-size: 11px; font-weight: 700; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--text2); }
+.filter-grid select {
+  background: var(--surface2); border: none; border-radius: var(--r-sm);
+  padding: 10px 32px 10px 12px; color: var(--text); font-size: 14px;
+  font-family: var(--sans); outline: none; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
+}
+
+/* ─── Paper size toggle ─── */
+.size-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.size-btn {
+  border: 1.5px solid var(--separator); background: var(--surface);
+  border-radius: var(--r-sm); padding: 8px 14px; cursor: pointer;
+  font-size: 13px; font-family: var(--sans); color: var(--text2);
+  transition: all .18s; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.size-btn .sz-label { font-weight: 700; font-size: 14px; color: var(--text); }
+.size-btn .sz-sub   { font-size: 10px; color: var(--text3); }
+.size-btn.on { border-color: var(--ios-blue); background: rgba(0,122,255,.08);
+               color: var(--ios-blue); }
+.size-btn.on .sz-label { color: var(--ios-blue); }
+
+/* ─── Stats bar ─── */
+.stats-bar {
+  display: flex; align-items: center; gap: 20px; padding: 12px 18px;
+  background: var(--surface); border-radius: var(--r); margin-bottom: 16px;
+  box-shadow: var(--shadow); font-size: 13px; flex-wrap: wrap;
+}
+.stats-bar strong { font-size: 22px; font-weight: 300; color: var(--ios-blue); }
+.stats-bar span   { color: var(--text2); }
+
+/* ─── Preview grid ─── */
+.preview-grid {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  margin-bottom: 20px;
+}
+.preview-grid.size-58 { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+.preview-grid.size-80 { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.preview-grid.size-a4 { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+
+.label-card {
+  background: var(--surface); border-radius: var(--r-sm);
+  border: .5px solid var(--separator2); overflow: hidden;
+  cursor: pointer; transition: all .18s; display: flex; flex-direction: column;
+  position: relative;
+}
+.label-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.label-card.selected { border: 2px solid var(--ios-blue) !important; }
+.label-card.selected::after {
+  content: '✓'; position: absolute; top: 4px; right: 4px;
+  width: 18px; height: 18px; border-radius: 50%; background: var(--ios-blue);
+  color: #fff; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.label-qr { padding: 8px; display: flex; justify-content: center; }
+.label-qr img { width: 100%; max-width: 90px; height: auto; aspect-ratio: 1; image-rendering: crisp-edges; }
+.label-body { padding: 4px 8px 8px; border-top: .5px solid var(--separator2); }
+.label-inv { font-family: ui-monospace, 'SF Mono', monospace; font-size: 10px;
+             font-weight: 800; color: var(--ios-blue); letter-spacing: .04em; }
+.label-name { font-size: 11px; font-weight: 600; margin: 2px 0 1px;
+              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.label-room { font-size: 10px; color: var(--text2); }
+.label-emp  { font-size: 10px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.label-cat-ico { position: absolute; top: 6px; left: 6px; font-size: 13px; }
+
+/* ─── Action bar ─── */
+.action-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(242,242,247,.95);
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  border-top: .5px solid var(--separator2);
+  padding: 12px 20px; display: flex; align-items: center;
+  gap: 12px; z-index: 200; flex-wrap: wrap;
+}
+[data-theme="dark"] .action-bar { background: rgba(28,28,30,.95); }
+.sel-count { font-size: 14px; font-weight: 600; color: var(--text); flex: 1; }
+.sel-count span { color: var(--ios-blue); }
+
+/* ─── Empty ─── */
+.empty-block { text-align: center; padding: 60px 20px; }
+.empty-block svg { color: var(--text3); margin-bottom: 14px; }
+.empty-block h3 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+.empty-block p  { font-size: 14px; color: var(--text2); }
+
+/* ─── Group header ─── */
+.group-header {
+  font-size: 12px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--text2);
+  padding: 14px 0 8px; display: flex; align-items: center;
+  justify-content: space-between;
+}
+.group-line { flex: 1; height: .5px; background: var(--separator2); margin-left: 10px; }
+.group-sel-btn { font-size: 12px; color: var(--ios-blue); background: none; border: none;
+                 cursor: pointer; font-family: var(--sans); padding: 2px 8px; }
+
+/* ─── QR Lightbox ─── */
+.qr-lightbox {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,.75); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.qr-lightbox.open { opacity: 1; pointer-events: all; }
+.qr-lightbox-inner {
+  background: var(--surface); border-radius: 24px; padding: 28px 32px;
+  text-align: center; max-width: 320px; width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  transform: scale(.88); transition: transform .35s var(--ease-spring);
+}
+.qr-lightbox.open .qr-lightbox-inner { transform: scale(1); }
+.qr-lightbox-inner img { width: 220px; height: 220px; image-rendering: crisp-edges;
+                          border: 8px solid #fff; border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 14px; }
+.qr-lightbox-inv { font-family: ui-monospace,'SF Mono',monospace; font-size: 20px;
+                   font-weight: 800; color: var(--ios-blue); margin-bottom: 4px; }
+.qr-lightbox-name { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+.qr-lightbox-room { font-size: 13px; color: var(--text2); margin-bottom: 14px; }
+.qr-lightbox-btns { display: flex; gap: 10px; }
+.qr-lightbox-btns a, .qr-lightbox-btns button {
+  flex: 1; padding: 11px; border-radius: var(--r-pill); font-size: 14px;
+  font-weight: 600; text-decoration: none; border: none; cursor: pointer;
+  font-family: var(--sans); text-align: center; transition: all .15s;
+}
+.qr-lb-primary { background: var(--ios-blue); color: #fff; }
+.qr-lb-secondary { background: var(--surface2); color: var(--text); }
+.qr-lb-primary:hover { filter: brightness(1.08); }
+
+/* ─── Toolbar ─── */
+.toolbar-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.ios-search { background: var(--surface2); border-radius: var(--r-sm); padding: 9px 12px;
+              display: flex; align-items: center; gap: 8px; flex: 1; min-width: 180px; }
+.ios-search input { background: none; border: none; outline: none; color: var(--text);
+                    font-size: 16px; font-family: var(--sans); flex: 1; }
+.ios-search input::placeholder { color: var(--text3); }
+.ios-search svg { color: var(--text3); flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════════════
+   SCREEN-ONLY styles
+   ═══════════════════════════════════════════════════════ */
+@media print { .no-print { display: none !important; } }
+
+/* ═══════════════════════════════════════════════════════
+   PRINT MEDIA — 58mm Xprinter 365B / 80mm / A4
+   @page rules MUST be at top-level scope (not nested)
+   ═══════════════════════════════════════════════════════ */
+
+/* ── @page rules (top-level, selected via JS dynamic style) ── */
+@media print {
+  @page { margin: 0; }
+  /* Hide all screen UI — but NOT print-grid */
+  .no-print, .ios-nav, .filter-card, .toolbar-row,
+  .stats-bar, .action-bar, .qr-lightbox, .toast,
+  #grid-container { display: none !important; }
+
+  /* Show print grid */
+  #print-grid { display: block !important; }
+
+  /* Reset body */
+  html, body {
+    background: #fff !important; margin: 0 !important;
+    padding: 0 !important; width: 100% !important;
+  }
+  .wrap { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  /* ── 58mm Xprinter 365B ── */
+  body.print-58 { width: 58mm !important; }
+  body.print-58 .print-label {
+    width: 56mm !important;
+    min-height: 38mm;
+    margin: 0 !important;
+    padding: 2mm;
+    page-break-after: always;
+    break-after: page;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    border: none !important;
+  }
+  body.print-58 .print-label .pl-qr img { max-width: 38mm !important; }
+  body.print-58 .print-label .pl-inv    { font-size: 4.5mm; }
+  body.print-58 .print-label .pl-name   { font-size: 3.2mm; }
+
+  /* ── 80mm Xprinter / Rongta ── */
+  body.print-80 { width: 80mm !important; }
+  body.print-80 .print-label {
+    width: 78mm !important;
+    min-height: 50mm;
+    margin: 0 !important;
+    padding: 3mm;
+    page-break-after: always;
+    break-after: page;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    border: none !important;
+  }
+  body.print-80 .print-label .pl-qr img { max-width: 54mm !important; }
+
+  /* ── A4 — 3x grid ── */
+  body.print-a4 #print-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6mm;
+    padding: 0;
+  }
+  body.print-a4 .print-label {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    padding: 5mm;
+    border: 1px dashed #bbb !important;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+  }
+  body.print-a4 .print-label .pl-qr img { max-width: 50mm !important; }
+
+  /* ── Common label design ── */
+  .print-label, .print-label * {
+    color: #000 !important;
+  }
+  .print-label {
+    background: #fff !important;
+    text-align: center;
+    font-family: -apple-system, 'Inter', Arial, sans-serif;
+  }
+  .print-label .pl-qr {
+    width: 100%; display: flex; justify-content: center;
+  }
+  .print-label .pl-qr img {
+    width: 100%; max-width: 54mm; height: auto; aspect-ratio: 1/1;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    margin-bottom: 2mm;
+    display: block !important;
+  }
+  .print-label .pl-inv {
+    font-family: ui-monospace, 'Courier New', monospace;
+    font-weight: 900;
+    font-size: 5.5mm;
+    color: #000 !important;
+    letter-spacing: .03em;
+    margin-bottom: 1.5mm;
+    text-transform: uppercase;
+  }
+  .print-label .pl-info-wrap {
+    width: 100%; margin-top: 1mm;
+    border-top: 1pt solid #000;
+    padding-top: 2mm; text-align: left;
+    display: flex; flex-direction: column; gap: 1mm;
+  }
+  .print-label .pl-name {
+    font-size: 3.8mm; font-weight: 700;
+    margin-bottom: 0.5mm; line-height: 1.2;
+    color: #000 !important;
+  }
+  .print-label .pl-detail {
+    font-size: 3mm; color: #333 !important;
+    display: flex; align-items: center; gap: 2mm;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .print-label .pl-detail b { font-weight: 700; }
+}
+</style>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#007AFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Tracko">
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav class="ios-nav no-print">
+  <div class="nav-left">
+    <a href="/dashboard" class="nav-back">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Главная
+    </a>
+  </div>
+  <div class="nav-center">Печать QR-этикеток</div>
+  <div class="nav-right">
+    <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="Тема">
+      <svg id="ico-dark" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg id="ico-light" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+    </button>
+  </div>
+</nav>
+
+<div class="wrap">
+  <h1 class="page-title no-print">Печать QR-этикеток</h1>
+  <p class="page-sub no-print">Поддержка: Xprinter XP-58IIT (58мм) · XP-365B · XP-Q80A (80мм) · A4</p>
+
+  <!-- ─── Filter + Paper Size ─── -->
+  <div class="filter-card no-print">
+    <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);margin-bottom:14px;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:5px;"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      Фильтры
+    </div>
+    <div class="filter-grid">
+      <div class="field">
+        <label>Кабинет</label>
+        <select id="f-room" onchange="applyFilter()">
+          <option value="">Все кабинеты</option>
+          {% for r in rooms %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>Категория</label>
+        <select id="f-cat" onchange="applyFilter()">
+          <option value="">Все категории</option>
+          {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>Сотрудник</label>
+        <select id="f-emp" onchange="applyFilter()">
+          <option value="">Все сотрудники</option>
+          <option value="__free__">Свободные (без сотрудника)</option>
+          {% for e in employees %}<option value="{{ e }}">{{ e }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>Отдел</label>
+        <select id="f-dept" onchange="applyFilter()">
+          <option value="">Все отделы</option>
+          {% for d in departments %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Paper size selector -->
+    <div style="margin-top:18px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);margin-bottom:10px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:5px;"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>
+        Формат бумаги
+      </div>
+      <div class="size-group">
+        <button class="size-btn" id="sz-58" onclick="setPaper('58')">
+          <div class="sz-label">58мм</div>
+          <div class="sz-sub">XP-58IIT</div>
+          <div class="sz-sub">Чековый</div>
+        </button>
+        <button class="size-btn on" id="sz-80" onclick="setPaper('80')">
+          <div class="sz-label">80мм</div>
+          <div class="sz-sub">XP-365B</div>
+          <div class="sz-sub">XP-Q80A</div>
+        </button>
+        <button class="size-btn" id="sz-a4" onclick="setPaper('a4')">
+          <div class="sz-label">A4</div>
+          <div class="sz-sub">4 на листе</div>
+          <div class="sz-sub">Лазерный</div>
+        </button>
+      </div>
+      <!-- Label options -->
+      <div style="display:flex;gap:16px;margin-top:14px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+          <input type="checkbox" id="opt-serial" onchange="renderGrid(getFiltered())" style="accent-color:var(--ios-blue);width:16px;height:16px;">
+          Серийный номер
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+          <input type="checkbox" id="opt-emp" checked onchange="renderGrid(getFiltered())" style="accent-color:var(--ios-blue);width:16px;height:16px;">
+          Сотрудник
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+          <input type="checkbox" id="opt-room" checked onchange="renderGrid(getFiltered())" style="accent-color:var(--ios-blue);width:16px;height:16px;">
+          Кабинет
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+          <input type="checkbox" id="opt-group" onchange="renderGrid(getFiltered())" style="accent-color:var(--ios-blue);width:16px;height:16px;">
+          Группировать по кабинетам
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Toolbar ─── -->
+  <div class="toolbar-row no-print">
+    <div class="ios-search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="search" placeholder="Поиск по инв. №, модели, сотруднику…" oninput="applyFilter()">
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="selectAll()">Выбрать все</button>
+    <button class="btn btn-secondary btn-sm" onclick="deselectAll()">Снять выбор</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar no-print" id="stats-bar">
+    <strong id="st-total">0</strong><span>единиц</span>
+    <strong id="st-sel" style="color:var(--ios-green);">0</strong><span>выбрано</span>
+  </div>
+
+  <!-- ─── Labels Grid (preview) ─── -->
+  <div id="grid-container"></div>
+
+</div> <!-- End of .wrap -->
+
+<div id="print-grid" class="print-grid" style="display:none;"></div>
+
+<!-- ─── Action Bar ─── -->
+<div class="action-bar no-print">
+  <div class="sel-count">Выбрано: <span id="ac-sel">0</span> из <span id="ac-total">0</span></div>
+  <button class="btn btn-secondary btn-sm" onclick="selectAll()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="9 11 12 14 22 4"/></svg>
+    Все
+  </button>
+  <button class="btn btn-secondary" onclick="printSelected()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    Печатать выбранные
+  </button>
+  <button class="btn btn-secondary" onclick="debugPrint()">🐞 Отладка</button>
+  <button class="btn btn-primary" onclick="printAll()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    Печатать все (<span id="ac-total2">0</span>)
+  </button>
+</div>
+
+<!-- ─── QR Lightbox ─── -->
+<div class="qr-lightbox" id="qr-lb" onclick="if(event.target===this)closeLb()">
+  <div class="qr-lightbox-inner">
+    <img id="lb-img" src="" alt="QR">
+    <div class="qr-lightbox-inv" id="lb-inv"></div>
+    <div class="qr-lightbox-name" id="lb-name"></div>
+    <div class="qr-lightbox-room" id="lb-room"></div>
+    <div class="qr-lightbox-btns">
+      <a class="qr-lb-secondary" href="#" id="lb-asset" target="_blank">Открыть ↗</a>
+      <button class="qr-lb-primary" onclick="printOne(currentLbItem)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:4px;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Печать
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="ti" id="ti">●</span> <span id="tm"></span></div>
+
+<script>
+/* ─── DATA ─── */
+const ALL_ITEMS = {{ items|tojson }};
+const HOST = "{{ host }}";
+const ICONS = {Ноутбук:'💻',Монитор:'🖥',Кресло:'🪑',Стол:'🪵',Клавиатура:'⌨️',Мышь:'🖱',Принтер:'🖨',Телефон:'📱',Другое:'📦'};
+
+/* ─── STATE ─── */
+let selected = new Set();
+let filtered = [];
+let paperSize = '80';
+let currentLbItem = null;
+
+/* ─── THEME ─── */
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme')||'';
+  const next = cur==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  localStorage.setItem('tracko-theme',next);
+  updateThemeIco(next);
+}
+function updateThemeIco(t) {
+  document.getElementById('ico-dark').style.display  = t==='dark'?'none':'';
+  document.getElementById('ico-light').style.display = t==='dark'?'':'none';
+}
+(function(){
+  const t = localStorage.getItem('tracko-theme') ||
+    (window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', t);
+  updateThemeIco(t);
+})();
+
+/* ─── FILTER ─── */
+function getFiltered() {
+  const room  = document.getElementById('f-room').value;
+  const cat   = document.getElementById('f-cat').value;
+  const emp   = document.getElementById('f-emp').value;
+  const dept  = document.getElementById('f-dept').value;
+  const q     = document.getElementById('search').value.toLowerCase();
+
+  return ALL_ITEMS.filter(i => {
+    if(room && i.room !== room) return false;
+    if(cat  && i.category !== cat) return false;
+    if(emp === '__free__' && i.employee && i.employee !== '—') return false;
+    if(emp && emp !== '__free__' && i.employee !== emp) return false;
+    if(dept && i.department !== dept) return false;
+    if(q && ![i.inv_num,i.model,i.employee,i.room,i.place,i.category].join(' ').toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function applyFilter() {
+  filtered = getFiltered();
+  renderGrid(filtered);
+}
+
+/* ─── PAPER SIZE ─── */
+function setPaper(sz) {
+  paperSize = sz;
+  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('on'));
+  document.getElementById('sz-'+sz).classList.add('on');
+  renderGrid(filtered);
+}
+
+/* ─── RENDER PREVIEW GRID ─── */
+function renderGrid(list) {
+  const gc = document.getElementById('grid-container');
+  const doGroup = document.getElementById('opt-group').checked;
+  const showEmp = document.getElementById('opt-emp').checked;
+  const showRoom = document.getElementById('opt-room').checked;
+  const showSerial = document.getElementById('opt-serial').checked;
+
+  document.getElementById('st-total').textContent = list.length;
+  document.getElementById('ac-total').textContent = list.length;
+  document.getElementById('ac-total2').textContent = list.length;
+  updateSelCount();
+
+  if(!list.length) {
+    gc.innerHTML = `<div class="empty-block">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3m0 4h4M21 14h-4v4"/></svg>
+      <h3>Ничего не найдено</h3><p>Измените фильтры для отображения этикеток</p>
+    </div>`;
+    return;
+  }
+
+  const sizeClass = 'size-' + paperSize;
+  let html = '';
+
+  if(doGroup) {
+    const groups = {};
+    list.forEach(i => { (groups[i.room] = groups[i.room]||[]).push(i); });
+    for(const [room, roomItems] of Object.entries(groups)) {
+      html += `<div class="group-header">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+        &nbsp;${room}
+        <span style="color:var(--text3);font-weight:400;margin-left:6px;">${roomItems.length} шт.</span>
+        <span class="group-line"></span>
+        <button class="group-sel-btn" onclick="selectGroup('${room.replace(/'/g,"\\'")}',true)">Выбрать</button>
+        <button class="group-sel-btn" onclick="selectGroup('${room.replace(/'/g,"\\'")}',false)">Снять</button>
+      </div>
+      <div class="preview-grid ${sizeClass}">`;
+      roomItems.forEach(i => { html += labelCard(i, showEmp, showRoom, showSerial); });
+      html += '</div>';
+    }
+  } else {
+    html = `<div class="preview-grid ${sizeClass}">`;
+    list.forEach(i => { html += labelCard(i, showEmp, showRoom, showSerial); });
+    html += '</div>';
+  }
+
+  gc.innerHTML = html;
+}
+
+function labelCard(i, showEmp, showRoom, showSerial) {
+  const sel = selected.has(i.inv_num);
+  return `<div class="label-card${sel?' selected':''}" id="lc-${i.inv_num.replace(/[^a-zA-Z0-9]/g,'_')}" onclick="toggleSelect('${i.inv_num}')">
+    <span class="label-cat-ico">${ICONS[i.category]||'📦'}</span>
+    <div class="label-qr" onclick="event.stopPropagation();openLb(${i.id},'${i.inv_num}','${(i.model||i.category).replace(/'/g,"\\'")}','${i.room.replace(/'/g,"\\'")}')">
+      <img src="/api/qr/${encodeURIComponent(i.inv_num)}" loading="lazy" alt="QR ${i.inv_num}">
+    </div>
+    <div class="label-body">
+      <div class="label-inv">${i.inv_num}</div>
+      <div class="label-name">${i.model||i.category}</div>
+      ${showRoom  ? `<div class="label-room">${i.room}</div>` : ''}
+      ${showEmp   ? `<div class="label-emp">${i.employee&&i.employee!=='—'?i.employee:'Свободно'}</div>` : ''}
+      ${showSerial && i.serial_num && i.serial_num!=='—' ? `<div class="label-emp" style="font-size:9px;">${i.serial_num}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+/* ─── SELECTION ─── */
+function toggleSelect(inv) {
+  if(selected.has(inv)) selected.delete(inv);
+  else selected.add(inv);
+  // Toggle class without re-render
+  const card = document.getElementById('lc-'+inv.replace(/[^a-zA-Z0-9]/g,'_'));
+  if(card) card.classList.toggle('selected', selected.has(inv));
+  updateSelCount();
+}
+function selectAll()   { filtered.forEach(i=>selected.add(i.inv_num)); renderGrid(filtered); }
+function deselectAll() { selected.clear(); renderGrid(filtered); }
+function selectGroup(room, sel) {
+  filtered.filter(i=>i.room===room).forEach(i => sel ? selected.add(i.inv_num) : selected.delete(i.inv_num));
+  renderGrid(filtered);
+}
+function updateSelCount() {
+  const cnt = selected.size;
+  document.getElementById('ac-sel').textContent = cnt;
+  document.getElementById('st-sel').textContent = cnt;
+}
+
+/* ─── LIGHTBOX ─── */
+function openLb(id, inv, name, room) {
+  currentLbItem = filtered.find(i=>i.inv_num===inv);
+  document.getElementById('lb-img').src  = `/api/qr/${encodeURIComponent(inv)}?t=${Date.now()}`;
+  document.getElementById('lb-inv').textContent  = inv;
+  document.getElementById('lb-name').textContent = name;
+  document.getElementById('lb-room').textContent = room;
+  document.getElementById('lb-asset').href = `/asset/${encodeURIComponent(inv)}`;
+  document.getElementById('qr-lb').classList.add('open');
+}
+function closeLb() { document.getElementById('qr-lb').classList.remove('open'); }
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeLb(); });
+
+/* ─── PRINT ─── */
+function buildPrintHtml(itemsList) {
+  const showEmp    = document.getElementById('opt-emp').checked;
+  const showRoom   = document.getElementById('opt-room').checked;
+  const showSerial = document.getElementById('opt-serial').checked;
+  return itemsList.map(i => `
+    <div class="print-label">
+      <div class="pl-qr">
+        <img src="/api/qr/${encodeURIComponent(i.inv_num)}" alt="QR ${i.inv_num}">
+      </div>
+      <div class="pl-inv">${i.inv_num}</div>
+      <div class="pl-info-wrap">
+        <div class="pl-name">${i.model||i.category}</div>
+        ${showRoom  ? `<div class="pl-detail"><b>📍</b> <span>${i.room}${i.place?` · ${i.place}`:''}</span></div>` : ''}
+        ${showEmp && i.employee && i.employee!=='—' ? `<div class="pl-detail"><b>👤</b> <span>${i.employee}</span></div>` : ''}
+        ${showSerial && i.serial_num && i.serial_num!=='—' ? `<div class="pl-detail"><b>🔢</b> <span>${i.serial_num}</span></div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function applyPrintClass() {
+  document.body.className = 'print-' + paperSize;
+}
+
+function printItems(itemsList) {
+  if(!itemsList.length) { toast('Нет этикеток для печати','err'); return; }
+
+  const printWin = window.open('', '_blank', 'width=900,height=700');
+  if(!printWin) {
+    alert('Браузер заблокировал всплывающее окно. Пожалуйста, разрешите всплывающие окна для этого сайта.');
+    return;
+  }
+
+  // Робастный CSS для всех размеров
+  let sizeStyles = '';
+  if(paperSize === '58') {
+    sizeStyles = '@page { size: 58mm 40mm; margin: 0; } .print-label { width: 58mm; height: 40mm; } .pl-qr img { max-width: 28mm; }';
+  } else if(paperSize === '80') {
+    sizeStyles = '@page { size: 80mm 50mm; margin: 0; } .print-label { width: 80mm; height: 50mm; } .pl-qr img { max-width: 35mm; }';
+  } else {
+    sizeStyles = '@page { size: A4 portrait; margin: 10mm; } .print-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; } .print-label { border: 1px dashed #ccc; padding: 5mm; page-break-inside: avoid; }';
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Tracko Print</title>
+      <style>
+        body { margin: 0; padding: 0; background: #fff; color: #000; font-family: "Helvetica", Arial, sans-serif; }
+        ${sizeStyles}
+        .print-label { 
+          display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+          box-sizing: border-box; overflow: hidden; page-break-after: always; padding: 2mm;
+        }
+        .pl-qr { margin-bottom: 1mm; }
+        .pl-qr img { height: auto; image-rendering: crisp-edges; }
+        .pl-inv { 
+          font-size: 18px; font-weight: 900; margin: 0; padding: 0;
+          font-family: 'Courier New', ui-monospace, monospace; color: #000 !important; display: block;
+        }
+        .pl-info-wrap { 
+          width: 100%; border-top: 2px solid #000; margin-top: 1mm; padding-top: 1mm;
+          text-align: left; color: #000 !important; overflow: hidden;
+        }
+        .pl-name { font-size: 14px; font-weight: 800; margin-bottom: 1px; display: block; color: #000 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pl-detail { font-size: 11px; color: #000 !important; display: block; margin-top: 1px; }
+      </style>
+    </head>
+    <body>
+      <div class="print-grid">
+        ${buildPrintHtml(itemsList)}
+      </div>
+      <script>
+        // Print triggered by parent window after images load
+      <\/script>
+    </body>
+    </html>
+  `;
+
+  printWin.document.write(html);
+  printWin.document.close();
+
+  // Wait for images to load before printing
+  printWin.onload = function() {
+    const imgs = printWin.document.querySelectorAll('img');
+    if (!imgs.length) {
+      setTimeout(() => { try { printWin.print(); } catch(e){} }, 300);
+      return;
+    }
+    let loaded = 0;
+    const total = imgs.length;
+    function tryPrint() {
+      loaded++;
+      if (loaded >= total) {
+        setTimeout(() => { try { printWin.print(); } catch(e){} }, 200);
+      }
+    }
+    imgs.forEach(img => {
+      if (img.complete && img.naturalWidth > 0) tryPrint();
+      else { img.onload = tryPrint; img.onerror = tryPrint; }
+    });
+    // Absolute fallback: print after 4s regardless
+    setTimeout(() => { try { printWin.print(); } catch(e){} }, 4000);
+  };
+}
+
+function printAll()      { printItems(filtered); }
+function printSelected() {
+  const sel = filtered.filter(i=>selected.has(i.inv_num));
+  if(!sel.length) { toast('Ничего не выбрано — отметьте этикетки','err'); return; }
+  printItems(sel);
+}
+function printOne(item) {
+  if(!item) return;
+  closeLb();
+  setTimeout(()=>printItems([item]),200);
+}
+
+function debugPrint() {
+  const itemsList = filtered;
+  const pg = document.getElementById('print-grid');
+  pg.innerHTML = buildPrintHtml(itemsList);
+  pg.style.display = 'block';
+  pg.style.position = 'fixed';
+  pg.style.inset = '0';
+  pg.style.zIndex = '10000';
+  pg.style.background = '#fff';
+  pg.style.color = '#000';
+  pg.style.padding = '50px';
+  pg.style.overflow = 'auto';
+  document.querySelectorAll('.wrap, .ios-nav, .action-bar').forEach(el => el.style.display = 'none');
+  alert('Режим отладки: Если вы видите QR-коды сейчас, значит проблема в функции печати. Обновите страницу чтобы вернуться.');
+}
+
+/* ─── TOAST ─── */
+let _t; function toast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  document.getElementById('ti').textContent='●';
+  document.getElementById('tm').textContent=msg;
+  t.className='toast '+type+' show';
+  clearTimeout(_t);_t=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+/* ─── INIT ─── */
+filtered = ALL_ITEMS.slice();
+renderGrid(filtered);
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>QR-листы для сотрудников</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#fff;font-family:'Arial',sans-serif;padding:20px;}
+.no-print{background:#f0f0f0;border-radius:8px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
+.no-print p{font-size:13px;color:#444;}
+.no-print button{background:#0071e3;color:#fff;border:none;padding:8px 20px;border-radius:980px;font-size:13px;cursor:pointer;}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.qr-card{border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center;page-break-inside:avoid;}
+.qr-card img{width:100px;height:100px;display:block;margin:0 auto 8px;}
+.qr-name{font-family:sans-serif;font-size:14px;font-weight:700;color:#1d1d1f;margin-bottom:4px;}
+.qr-count{font-size:12px;color:#0071e3;background:rgba(0,113,227,0.1);display:inline-block;padding:3px 8px;border-radius:98px;}
+@media print{
+  .no-print{display:none!important;}
+  body{padding:10px;}
+  .grid{grid-template-columns:repeat(4,1fr);gap:8px;}
+  .qr-card{border-color:#ccc;}
+}
+</style>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#007AFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Tracko">
+</head>
+<body>
+<div class="no-print">
+  <div>
+    <p style="font-weight:600;font-size:14px;margin-bottom:3px;">Листы QR-кодов: Сотрудники</p>
+    <p>Всего сотрудников с оборудованием: {{ employees|length }}</p>
+  </div>
+  <button onclick="window.print()">🖨 Распечатать</button>
+</div>
+
+{% if employees %}
+<div class="grid">
+  {% for emp in employees %}
+  <div class="qr-card">
+    <img src="/api/qr_employee/{{ emp.name_encoded }}" alt="QR">
+    <div class="qr-name">{{ emp.name }}</div>
+    <div class="qr-count">Оборудования: {{ emp.count }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p style="text-align:center;color:#999;padding:40px;">Нет сотрудников с закрепленным оборудованием</p>
+{% endif %}
+</body>
+</html>

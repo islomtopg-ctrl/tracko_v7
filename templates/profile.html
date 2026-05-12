@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tracko — Профиль</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#f2f2f7;--surface:#fff;--surface2:#f2f2f7;--surface3:#e5e5ea;--border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.15);--text:#1c1c1e;--text2:#6c6c70;--text3:#aeaeb2;--accent:#4361EE;--green:#34c759;--red:#FF453A;--r:12px;--shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);--sans:'Inter',system-ui,sans-serif;}
+@media(prefers-color-scheme:dark){:root{--bg:#000;--surface:#1c1c1e;--surface2:#2c2c2e;--surface3:#3a3a3c;--border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);--text:#f5f5f7;--text2:#98989d;--text3:#48484a;--accent:#6c7ff5;}}
+[data-theme="dark"]{--bg:#000;--surface:#1c1c1e;--surface2:#2c2c2e;--surface3:#3a3a3c;--border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);--text:#f5f5f7;--text2:#98989d;--text3:#48484a;--accent:#6c7ff5;}
+[data-theme="light"]{--bg:#f2f2f7;--surface:#fff;--surface2:#f2f2f7;--surface3:#e5e5ea;--border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.15);--text:#1c1c1e;--text2:#6c6c70;--text3:#aeaeb2;--accent:#4361EE;}
+html{-webkit-font-smoothing:antialiased;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
+.nav{position:sticky;top:0;z-index:100;height:56px;background:rgba(242,242,247,.88);backdrop-filter:blur(20px);border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;}
+@media(prefers-color-scheme:dark){.nav{background:rgba(0,0,0,.8);}}
+[data-theme="dark"] .nav{background:rgba(0,0,0,.8);}
+[data-theme="light"] .nav{background:rgba(242,242,247,.88);}
+.nav-left{display:flex;align-items:center;gap:14px;}
+.back{color:var(--accent);text-decoration:none;font-size:14px;font-weight:500;display:flex;align-items:center;gap:5px;}
+.nav-title{font-size:16px;font-weight:600;color:var(--text);}
+.content{max-width:520px;margin:0 auto;padding:32px 20px 60px;}
+.profile-head{text-align:center;margin-bottom:32px;}
+.avatar{width:88px;height:88px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:#fff;margin-bottom:16px;box-shadow:0 8px 32px rgba(0,0,0,.15);}
+.profile-name{font-size:22px;font-weight:600;letter-spacing:-.3px;}
+.profile-email{font-size:14px;color:var(--text2);margin-top:4px;}
+.role-badge{display:inline-block;font-size:12px;font-weight:600;padding:4px 12px;border-radius:980px;margin-top:10px;}
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px;}
+.stat-box{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);text-align:center;}
+.stat-n{font-size:28px;font-weight:300;color:var(--accent);letter-spacing:-1px;}
+.stat-l{font-size:12px;color:var(--text2);margin-top:4px;}
+.card{background:var(--surface);border:.5px solid var(--border);border-radius:16px;padding:22px;margin-bottom:16px;box-shadow:var(--shadow);}
+.card-title{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text2);margin-bottom:16px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);margin-bottom:5px;}
+.field input{width:100%;background:var(--surface2);border:.5px solid var(--border2);border-radius:10px;padding:10px 13px;color:var(--text);font-family:var(--sans);font-size:14px;outline:none;transition:border .15s,box-shadow .15s;}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(67,97,238,.1);}
+.btn{font-family:var(--sans);font-size:13px;font-weight:500;padding:10px 20px;border-radius:980px;border:none;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--accent);color:#fff;width:100%;justify-content:center;}
+.btn-primary:hover{filter:brightness(1.08);}
+.btn-primary:active{transform:scale(.98);}
+.btn-ghost{background:var(--surface2);color:var(--text2);border:.5px solid var(--border2);}
+.info-row{display:flex;justify-content:space-between;padding:11px 0;border-bottom:.5px solid var(--border);font-size:13px;}
+.info-row:last-child{border-bottom:none;}
+.info-row span:first-child{color:var(--text2);}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);z-index:999;background:rgba(28,28,30,.95);color:#fff;backdrop-filter:blur(16px);border-radius:980px;padding:11px 20px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.ok .ti{color:#34c759;}
+.toast.err .ti{color:#ff3b30;}
+.theme-btn{width:34px;height:34px;border-radius:50%;border:.5px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-size:16px;}
+</style>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#007AFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Tracko">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-left">
+    <a href="/dashboard" class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg> Главная</a>
+    <span class="nav-title">Профиль</span>
+  </div>
+  <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Сменить тему">🌙</button>
+</nav>
+
+<div class="content">
+  <div class="profile-head">
+    {% set colors = ['#4361EE','#7B2FBE','#06C755','#FF9500','#5856D6','#5AC8FA'] %}
+    {% set color = colors[user.id % 6] %}
+    <div class="avatar" style="background:{{ color }}">{{ user.name[:1].upper() }}</div>
+    <div class="profile-name" id="disp-name">{{ user.name }}</div>
+    <div class="profile-email">{{ user.email }}</div>
+    <span class="role-badge" style="background:rgba(67,97,238,.1);color:var(--accent);">{{ role_info.label }}</span>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-n">{{ my_items }}</div>
+      <div class="stat-l">Единиц техники</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-n">{{ my_actions }}</div>
+      <div class="stat-l">Действий в системе</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Информация</div>
+    <div class="info-row"><span>Отдел</span><span>{{ user.department or '—' }}</span></div>
+    <div class="info-row"><span>Роль</span><span>{{ role_info.label }}</span></div>
+    <div class="info-row"><span>Email</span><span>{{ user.email }}</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Изменить имя</div>
+    <div class="field">
+      <label>Отображаемое имя</label>
+      <input id="f-name" value="{{ user.name }}" placeholder="Имя Фамилия">
+    </div>
+    <button class="btn btn-primary" onclick="saveName()">Сохранить имя</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Сменить пароль</div>
+    <div class="field">
+      <label>Новый пароль</label>
+      <input id="f-pass" type="password" placeholder="Минимум 6 символов">
+    </div>
+    <div class="field">
+      <label>Повторите пароль</label>
+      <input id="f-pass2" type="password" placeholder="Повторите пароль">
+    </div>
+    <button class="btn btn-primary" onclick="savePass()">Сменить пароль</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="ti" id="ti">●</span><span id="tm"></span></div>
+
+<script>
+async function saveName(){
+  const name = document.getElementById('f-name').value.trim();
+  if(!name) return toast('Введи имя','err');
+  const r = await (await fetch('/api/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})})).json();
+  if(r.ok){document.getElementById('disp-name').textContent=name;toast('Имя обновлено','ok');}
+  else toast(r.error||'Ошибка','err');
+}
+
+async function savePass(){
+  const p1 = document.getElementById('f-pass').value;
+  const p2 = document.getElementById('f-pass2').value;
+  if(p1.length < 8) return toast('Пароль минимум 8 символов','err');
+  if(!/\d/.test(p1)) return toast('Пароль должен содержать цифры','err');
+  if(!/[a-zA-Zа-яА-Я]/.test(p1)) return toast('Пароль должен содержать буквы','err');
+  if(p1 !== p2) return toast('Пароли не совпадают','err');
+  const r = await (await fetch('/api/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p1})})).json();
+  if(r.ok){
+    document.getElementById('f-pass').value='';
+    document.getElementById('f-pass2').value='';
+    toast('Пароль изменён ✓','ok');
+    // Remove must_change banner if present
+    const b = document.getElementById('must-change-banner');
+    if(b) b.remove();
+  } else toast(r.error||'Ошибка','err');
+}
+// Show must_change banner if redirected from login
+(function(){
+  if(new URLSearchParams(window.location.search).get('must_change')==='1'){
+    const b = document.createElement('div');
+    b.id = 'must-change-banner';
+    b.style.cssText='background:rgba(255,59,48,.08);border:.5px solid rgba(255,59,48,.2);border-radius:12px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:var(--red);';
+    b.innerHTML='⚠️ <b>Смените пароль</b> — это обязательно при первом входе.';
+    document.querySelector('.content').prepend(b);
+    document.querySelector('.card-title').scrollIntoView({behavior:'smooth'});
+  }
+})();
+
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme')||'';
+  const next = cur==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  document.getElementById('themeBtn').textContent = next==='dark'?'☀️':'🌙';
+  localStorage.setItem('tracko-theme',next);
+}
+(function(){
+  const t=localStorage.getItem('tracko-theme');
+  if(t){document.documentElement.setAttribute('data-theme',t);document.getElementById('themeBtn').textContent=t==='dark'?'☀️':'🌙';}
+})();
+
+let _t; function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  document.getElementById('ti').textContent='●';
+  document.getElementById('tm').textContent=msg;
+  el.className='toast '+type+' show';
+  clearTimeout(_t);_t=setTimeout(()=>el.classList.remove('show'),3000);
+}
+</script>
+
+{% if user.role == 'employee' %}
+<div style="max-width:520px;margin:0 auto;padding:0 20px 60px;">
+  <div class="card" style="margin-top:0;">
+    <div class="card-title" style="font-size:14px;font-weight:700;margin-bottom:12px;">Закреплённая техника</div>
+    <div id="prof-items">
+      <div style="font-size:13px;color:var(--text2);">Загрузка...</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+<script>
+{% if user.role == "employee" %}
+(function(){
+  fetch("/api/items").then(r=>r.json()).then(items=>{
+    var el=document.getElementById("prof-items");
+    if(!items.length){el.innerHTML="<p style='color:var(--text2);font-size:13px;'>Техника не закреплена</p>";return;}
+    el.innerHTML=items.map(i=>
+      "<a href='/asset/"+i.inv_num+"' style='display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:.5px solid var(--border);text-decoration:none;color:var(--text);gap:10px;'>"+
+      "<div><div style='font-size:13px;font-weight:500;'>"+i.category+" · "+(i.model||"—")+"</div><div style='font-size:11px;color:var(--text2);'>📍 "+(i.room||"—")+"</div></div>"+
+      "<div style='text-align:right;'><div style='font-family:monospace;font-size:12px;color:var(--accent);'>"+i.inv_num+"</div>"+
+      "<div style='font-size:11px;color:"+(i.condition==="Хорошее"?"#34c759":i.condition==="Требует ремонта"?"#ff3b30":"#ff9f0a")+"'>"+i.condition+"</div></div></a>"
+    ).join("");
+  }).catch(()=>{});
+})();
+{% endif %}
+</script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>База знаний — Tracko</title>
+  <link rel="stylesheet" href="/static/css/tracko-ios.css">
+  <style>
+    body { background: var(--bg); }
+    .docs-hero {
+      background: var(--surface); border-bottom: 0.5px solid var(--separator2);
+      padding: 80px 20px 60px; text-align: center; margin-top: 50px;
+      background-image: radial-gradient(circle at 50% -20%, rgba(0,122,255,0.05), transparent);
+    }
+    .docs-title { font-size: 42px; font-weight: 800; letter-spacing: -1px; margin-bottom: 16px; }
+    .docs-sub { color: var(--text2); font-size: 19px; max-width: 650px; margin: 0 auto 32px; line-height: 1.4; }
+    
+    .docs-search-wrap {
+      max-width: 500px; margin: 0 auto; position: relative;
+    }
+    .docs-search {
+      width: 100%; padding: 16px 20px 16px 48px; border-radius: 16px;
+      border: 1px solid var(--separator); background: var(--bg);
+      font-size: 16px; transition: all 0.3s;
+    }
+    .docs-search:focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 4px rgba(0,122,255,0.1); outline: none; }
+    .docs-search-ico { position: absolute; left: 16px; top: 18px; color: var(--text3); }
+
+    .docs-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px; padding: 60px 20px; max-width: 1200px; margin: 0 auto;
+    }
+    .doc-card {
+      background: var(--surface); border-radius: 24px; padding: 36px;
+      border: 0.5px solid var(--separator2); transition: all 0.4s var(--ease-spring);
+      cursor: pointer; position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .doc-card:hover { transform: translateY(-8px) scale(1.02); box-shadow: var(--shadow-lg); border-color: var(--ios-blue); }
+    .doc-icon {
+      width: 56px; height: 56px; border-radius: 14px; display: flex;
+      align-items: center; justify-content: center; margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .doc-name { font-size: 22px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.3px; }
+    .doc-text { font-size: 15px; color: var(--text2); line-height: 1.6; flex: 1; }
+    
+    .role-tag {
+      position: absolute; top: 24px; right: 24px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      padding: 5px 12px; border-radius: 980px; letter-spacing: 0.5px;
+      background: var(--surface2); color: var(--text3);
+    }
+
+    .support-footer {
+      text-align: center; padding: 60px 20px; border-top: 0.5px solid var(--separator2);
+      background: var(--surface);
+    }
+    .support-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .support-btn { margin-top: 20px; }
+  </style>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#007AFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Tracko">
+</head>
+<body>
+  <nav class="ios-nav">
+    <a href="/dashboard" class="nav-back">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Главная
+    </a>
+    <span class="nav-title">База знаний</span>
+  </nav>
+
+  <header class="docs-hero">
+    <h1 class="docs-title">Центр поддержки</h1>
+    <p class="docs-sub">Всё, что нужно для эффективного управления ресурсами компании в единой экосистеме.</p>
+    <div class="docs-search-wrap">
+      <svg class="docs-search-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" class="docs-search" placeholder="Поиск по статьям и инструкциям...">
+    </div>
+  </header>
+
+  <div class="docs-grid">
+    <div class="doc-card">
+      <span class="role-tag">База</span>
+      <div class="doc-icon" style="background:rgba(0,122,255,0.1);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <h3 class="doc-name">Начало работы</h3>
+      <p class="doc-text">Узнайте, как настроить свой профиль, подключить уведомления в Telegram и провести первую инвентаризацию.</p>
+    </div>
+
+    <div class="doc-card">
+      <span class="role-tag" style="color:var(--ios-green);">АХО / IT</span>
+      <div class="doc-icon" style="background:rgba(52,199,89,0.1);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M16 3H8"/></svg>
+      </div>
+      <h3 class="doc-name">Учёт оборудования</h3>
+      <p class="doc-text">Регламенты добавления техники, правила присвоения инвентарных номеров и работа с QR-кодами.</p>
+    </div>
+
+    <div class="doc-card">
+      <span class="role-tag" style="color:var(--ios-orange);">HR</span>
+      <div class="doc-icon" style="background:rgba(255,149,0,0.1);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="18" y1="8" x2="23" y2="13"/><line x1="23" y1="8" x2="18" y2="13"/></svg>
+      </div>
+      <h3 class="doc-name">Оффбординг (Увольнение)</h3>
+      <p class="doc-text">Пошаговое руководство по процессу увольнения сотрудников и контролю возврата материальных ценностей.</p>
+    </div>
+
+    <div class="doc-card">
+      <span class="role-tag" style="color:var(--ios-red);">Списание</span>
+      <div class="doc-icon" style="background:rgba(255,69,58,0.1);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </div>
+      <h3 class="doc-name">Утилизация и Ремфонд</h3>
+      <p class="doc-text">Что делать с техникой, которая не подлежит ремонту. Как правильно оформить акт списания в системе.</p>
+    </div>
+
+    <div class="doc-card">
+      <span class="role-tag" style="color:var(--ios-indigo);">Аналитика</span>
+      <div class="doc-icon" style="background:rgba(88,86,214,0.1);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#5856D6" stroke-width="2"><path d="M212 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/><path d="M12 20v-8"/></svg>
+      </div>
+      <h3 class="doc-name">Отчеты и Экспорт</h3>
+      <p class="doc-text">Как формировать годовые отчеты, выгружать данные для бухгалтерии и анализировать износ техники.</p>
+    </div>
+
+    <div class="doc-card">
+      <span class="role-tag">Security</span>
+      <div class="doc-icon" style="background:rgba(142,142,147,0.1);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h3 class="doc-name">Права доступа</h3>
+      <p class="doc-text">Описание ролей (Superadmin, AHO, HR, Employee) и матрица прав доступа к функциям платформы.</p>
+    </div>
+  </div>
+
+  <footer class="support-footer">
+    <h2 class="support-title">Не нашли ответ?</h2>
+    <p class="docs-sub">Наша команда поддержки всегда готова помочь вам с любыми техническими вопросами.</p>
+    <button class="btn btn-primary support-btn">Связаться с IT-отделом</button>
+  </footer>
+
+  <div style="text-align:center; padding: 40px 0; background: var(--bg);">
+    <p style="color:var(--text3); font-size:13px;">© 2026 Tracko Inventory Systems. Спроектировано с любовью к деталям.</p>
+  </div>
+</body>
+</html>

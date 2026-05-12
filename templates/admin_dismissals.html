@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tracko — Увольнения</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#f2f2f7;--surface:#fff;--surface2:#f2f2f7;--surface3:#e5e5ea;--border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.15);--text:#1c1c1e;--text2:#6c6c70;--text3:#aeaeb2;--accent:#4361EE;--green:#34c759;--amber:#ff9f0a;--red:#FF453A;--r:12px;--shadow:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 16px rgba(0,0,0,.08);--sans:'Inter',system-ui,sans-serif;}
+@media(prefers-color-scheme:dark){:root{--bg:#000;--surface:#1c1c1e;--surface2:#2c2c2e;--surface3:#3a3a3c;--border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);--text:#f5f5f7;--text2:#98989d;--text3:#48484a;--shadow:0 1px 3px rgba(0,0,0,.3);--shadow-md:0 4px 16px rgba(0,0,0,.35);}}
+[data-theme="dark"]{--bg:#000;--surface:#1c1c1e;--surface2:#2c2c2e;--surface3:#3a3a3c;--border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);--text:#f5f5f7;--text2:#98989d;--text3:#48484a;}
+[data-theme="light"]{--bg:#f2f2f7;--surface:#fff;--surface2:#f2f2f7;--surface3:#e5e5ea;--border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.15);--text:#1c1c1e;--text2:#6c6c70;--text3:#aeaeb2;}
+html{-webkit-font-smoothing:antialiased;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
+.nav{position:sticky;top:0;z-index:100;height:56px;background:rgba(242,242,247,.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;}
+@media(prefers-color-scheme:dark){.nav{background:rgba(0,0,0,.8);}}
+[data-theme="dark"] .nav{background:rgba(0,0,0,.8);}
+.nav-left{display:flex;align-items:center;gap:14px;}
+.back{color:var(--accent);text-decoration:none;font-size:14px;font-weight:500;display:flex;align-items:center;gap:5px;}
+.nav-title{font-size:16px;font-weight:600;}
+.content{max-width:900px;margin:0 auto;padding:24px 20px 60px;}
+.btn{font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 16px;border-radius:980px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{filter:brightness(1.08);}
+.btn-ghost{background:var(--surface);color:var(--text2);border:.5px solid var(--border2);box-shadow:var(--shadow);}
+.btn-ghost:hover{background:var(--surface2);}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-red:hover{filter:brightness(1.08);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-green:hover{filter:brightness(1.08);}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
+@media(max-width:600px){.stat-row{grid-template-columns:1fr 1fr;}}
+.stat{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow);}
+.stat-n{font-size:26px;font-weight:300;letter-spacing:-1px;}
+.stat-l{font-size:11px;color:var(--text2);margin-top:2px;}
+.card{background:var(--surface);border:.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:16px;}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:.5px solid var(--border);}
+.card-title{font-size:14px;font-weight:600;}
+table{width:100%;border-collapse:collapse;}
+th{padding:9px 16px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);border-bottom:.5px solid var(--border);}
+tbody tr{border-bottom:.5px solid var(--border);transition:background .1s;cursor:pointer;}
+tbody tr:hover{background:var(--surface2);}
+tbody tr:last-child{border-bottom:none;}
+td{padding:13px 16px;font-size:13px;vertical-align:middle;}
+.status-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:980px;}
+.s-pending{background:rgba(255,159,10,.12);color:#ff9f0a;}
+.s-requested{background:rgba(67,97,238,.12);color:var(--accent);}
+.s-submitted{background:rgba(48,209,88,.12);color:var(--green);}
+.s-completed{background:rgba(110,110,115,.12);color:var(--text2);}
+.s-cancelled{background:rgba(142,142,147,.12);color:#8E8E93;}
+.emp-cell{display:flex;align-items:center;gap:8px;}
+.ava{width:30px;height:30px;border-radius:50%;color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.empty-state{text-align:center;padding:48px 20px;color:var(--text2);}
+.empty-ico{font-size:40px;margin-bottom:12px;}
+.empty-title{font-size:15px;font-weight:500;}
+.empty-sub{font-size:13px;color:var(--text3);margin-top:6px;}
+/* Modal */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.4); z-index: 9000;
+  -webkit-backdrop-filter: blur(8px) saturate(180%);
+  backdrop-filter: blur(8px) saturate(180%);
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .3s var(--ease-out);
+}
+.overlay.open { opacity: 1; pointer-events: all; }
+.sheet{background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:720px;padding:24px;transform:translateY(100%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
+.overlay.open .sheet{transform:translateY(0);}
+.sheet-handle{display:block;width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 20px;}
+
+@media (min-width: 641px) {
+  .overlay {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 40px !important;
+    background: rgba(0,0,0,0.55) !important;
+    backdrop-filter: blur(14px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(180%) !important;
+  }
+  .sheet, #m-detail .sheet, .detail-sheet {
+    border-radius: 28px !important;
+    max-height: 90vh;
+    width: 100%;
+    max-width: 800px !important;
+    padding: 0 !important;
+    transform: scale(0.95) translateY(10px) !important;
+    opacity: 0 !important;
+    transition: transform .4s var(--ease-spring), opacity .2s ease !important;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.4) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    pointer-events: none;
+  }
+  .overlay.open .sheet, #m-detail.open .sheet {
+    opacity: 1 !important;
+    transform: scale(1) translateY(0) !important;
+    pointer-events: all !important;
+  }
+  .sheet-handle { display: none !important; }
+  .sheet-body { padding: 40px !important; flex: 1; overflow-y: auto; }
+  .sheet-title { font-size: 28px !important; font-weight: 800 !important; margin-bottom: 24px !important; }
+  .sheet-foot { padding: 24px 40px 32px 40px !important; border-top: 2px solid var(--border); background: var(--surface); }
+}
+.sheet-title{font-size:18px;font-weight:700;margin-bottom:20px;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);margin-bottom:6px;}
+.field select,.field textarea,.field input{width:100%;background:var(--surface2);border:.5px solid var(--border2);border-radius:10px;padding:10px 13px;color:var(--text);font-family:var(--sans);font-size:14px;outline:none;transition:border .15s;}
+.field select:focus,.field textarea:focus,.field input:focus{border-color:var(--accent);}
+.field textarea{resize:none;height:80px;}
+.sheet-foot{display:flex;gap:10px;margin-top:20px;}
+/* Detail modal */
+.detail-sheet{max-width:680px;max-height:90vh;overflow-y:auto;border-radius:24px 24px 0 0;}
+.photos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:12px;}
+.photo-thumb{border-radius:10px;overflow:hidden;aspect-ratio:1;background:var(--surface2);}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer;transition:transform .2s;}
+.photo-thumb img:hover{transform:scale(1.04);}
+.photo-label{font-size:11px;color:var(--text2);text-align:center;padding:4px 0;}
+.items-list{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+.item-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;}
+.item-row .inv{font-family:ui-monospace,monospace;font-size:11px;color:var(--accent);font-weight:600;}
+.timeline{padding:12px 0;}
+.tl-item{display:flex;gap:12px;margin-bottom:14px;position:relative;}
+.tl-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px;position:relative;z-index:1;}
+.tl-dot::after{content:'';position:absolute;left:50%;top:100%;transform:translateX(-50%);width:2px;height:calc(100% + 14px);background:var(--border);}
+.tl-item:last-child .tl-dot::after{display:none;}
+.tl-txt{font-size:13px;flex:1;}
+.tl-time{font-size:11px;color:var(--text3);margin-top:2px;}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);z-index:9999;background:rgba(28,28,30,.95);color:#fff;backdrop-filter:blur(16px);border-radius:980px;padding:11px 20px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.ok .ti{color:#34c759;}
+.toast.err .ti{color:#ff3b30;}
+
+/* ── BYPASS SHEET STEPPER ── */
+.stepper { display: flex; justify-content: space-between; margin-bottom: 32px; position: relative; padding: 0 10px; }
+.stepper::before { content: ''; position: absolute; top: 14px; left: 0; right: 0; height: 2px; background: var(--border); z-index: 0; }
+.step { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 80px; }
+.step-dot { width: 30px; height: 30px; border-radius: 50%; background: var(--surface2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: var(--text3); transition: all 0.3s; }
+.step.active .step-dot { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 0 15px rgba(67,97,238,0.4); }
+.step.done .step-dot { background: var(--green); border-color: var(--green); color: #fff; }
+.step-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); text-align: center; }
+.step.active .step-label { color: var(--text); }
+
+/* ── BYPASS CARDS ── */
+.bypass-section { background: var(--surface2); border-radius: 20px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); transition: transform 0.2s; }
+.bypass-section:hover { transform: translateY(-2px); border-color: var(--accent); }
+.bs-head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.bs-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05); }
+.bs-icon svg { width: 22px; height: 22px; }
+.bs-title { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; color: var(--text); }
+.bs-status { margin-left: auto; font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 5px 12px; border-radius: 8px; letter-spacing: 0.05em; }
+
+.sig-box { margin-top: 16px; border: 1.5px dashed var(--border2); border-radius: 14px; padding: 4px; background: #fff; position: relative; }
+#sig-pad-aho, #sig-pad-it, #sig-pad-hr { width: 100%; height: 120px; border-radius: 10px; touch-action: none; cursor: crosshair; }
+[data-theme="dark"] .sig-box canvas { background: #1c1c1e; }
+.sig-hint { font-size: 11px; color: var(--text3); text-align: center; margin-top: 6px; }
+</style>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#007AFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Tracko">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-left">
+    <a href="/admin/users" class="back">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Пользователи
+    </a>
+    <span class="nav-title">Процессы увольнения</span>
+  </div>
+</nav>
+
+<div class="content">
+  <div class="stat-row" id="stats"></div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">Все процессы</div>
+    </div>
+    {% if dismissals %}
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr>
+          <th>Сотрудник</th><th>Техника</th><th>Статус</th><th>Кто инициировал</th><th>Дата</th><th></th>
+        </tr></thead>
+        <tbody>
+          {% for d in dismissals %}
+          <tr onclick="openDetail({{ d.id }})">
+            <td>
+              <div class="emp-cell">
+                <div class="ava" style="background:{{ ['#4361EE','#7B2FBE','#34c759','#ff9f0a','#ff3b30'][d.employee_id % 5] }}">{{ d.employee_name[:1].upper() }}</div>
+                <div>
+                  <div style="font-weight:500;">{{ d.employee_name }}</div>
+                  <div style="font-size:11px;color:var(--text2);">{{ d.employee_email or '—' }}</div>
+                </div>
+              </div>
+            </td>
+            <td style="color:var(--text2);">{{ (d.items_json | from_json | length) if d.items_json else 0 }} шт.</td>
+            <td>
+              {% set sc = {'pending':'s-pending','pending_aho':'s-requested','photos_submitted':'s-submitted','pending_it':'s-requested','pending_hr':'s-requested','completed':'s-completed','cancelled':'s-cancelled'} %}
+              {% set sl = {'pending':'Инициация','pending_aho':'АХО (Приём)','photos_submitted':'Фото получено','pending_it':'IT (Система)','pending_hr':'HR (Финал)','completed':'Завершено','cancelled':'Отменено'} %}
+              <span class="status-badge {{ sc.get(d.status,'') }}">
+                <svg width="6" height="6" viewBox="0 0 6 6"><circle cx="3" cy="3" r="3" fill="currentColor"/></svg>
+                {{ sl.get(d.status, d.status) }}
+              </span>
+            </td>
+            <td style="color:var(--text2);">{{ d.initiated_by_name }}</td>
+            <td style="color:var(--text3);font-size:12px;">{{ d.created_at[:16] if d.created_at else '—' }}</td>
+            <td onclick="event.stopPropagation()">
+              <button class="btn btn-ghost btn-sm" onclick="copyLink({{ d.id }})">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Ссылка
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-ico">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="18" x2="17" y2="18"/></svg>
+      </div>
+      <div class="empty-title">Нет процессов увольнения</div>
+      <div class="empty-sub">Начните процесс из карточки сотрудника</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="overlay" id="m-detail">
+  <div class="sheet detail-sheet" id="detail-content">
+    <span class="sheet-handle"></span>
+    <div id="detail-body">Загрузка…</div>
+    <div class="sheet-foot" id="detail-foot"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="ti" id="ti">●</span><span id="tm"></span></div>
+
+<script>
+// Stats
+const dismissals = {{ dismissals|tojson }};
+function computeStats(){
+  const counts = {pending:0,photos_requested:0,photos_submitted:0,completed:0,cancelled:0};
+  dismissals.forEach(d=>{ counts[d.status] = (counts[d.status]||0)+1; });
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="stat-n" style="color:var(--amber)">${counts.pending+counts.photos_requested}</div><div class="stat-l">Ожидают</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--accent)">${counts.photos_submitted}</div><div class="stat-l">Фото получено</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--green)">${counts.completed}</div><div class="stat-l">Завершено</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--text2)">${counts.cancelled}</div><div class="stat-l">Отменено</div></div>`;
+}
+
+    /* ── CATEGORY ICON SYSTEM ── */
+    const CAT_COLORS = {'Ноутбук':'#007AFF','Монитор':'#5856D6','Кресло':'#34C759','Стол':'#FF9500','Клавиатура':'#AF52DE','Мышь':'#5AC8FA','Принтер':'#30B0C7','Телефон':'#4361EE','Другое':'#8E8E93'};
+    const CAT_SVG = {
+      'Ноутбук':    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M1 19h22"/></svg>`,
+      'Монитор':    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>`,
+      'Кресло':     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 10a7 7 0 0 1 14 0"/><path d="M3 10h18a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1z"/><path d="M5 14v6m14-6v6"/></svg>`,
+      'Стол':       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7h18M6 7v13m12-13v13M3 11h4m10 0h4"/></svg>`,
+      'Клавиатура': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>`,
+      'Мышь':       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a6 6 0 0 0-6 6v8a6 6 0 0 0 12 0V8a6 6 0 0 0-6-6z"/><line x1="12" y1="2" x2="12" y2="10"/></svg>`,
+      'Принтер':    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>`,
+      'Телефон':    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="17" r="1"/></svg>`,
+      'Другое':     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
+    };
+    function getCatIcon(cat, sz = 20) {
+      const clr = CAT_COLORS[cat] || '#8E8E93';
+      const svg = (CAT_SVG[cat] || CAT_SVG['Другое']).replace('viewBox=', `width="${sz*0.6}" height="${sz*0.6}" viewBox=`).replace(/stroke="currentColor"/g, `stroke="${clr}"`);
+      return `<span style="width:${sz}px;height:${sz}px;border-radius:${Math.round(sz*0.28)}px;background:${clr}1A;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">${svg}</span>`;
+    }
+
+const STATUS_L = {pending:'Инициация',pending_aho:'АХО (Приём)',photos_submitted:'Фото получено',pending_it:'IT (Система)',pending_hr:'HR (Финал)',completed:'Завершено',cancelled:'Отменено'};
+const STATUS_C = {pending:'s-pending',pending_aho:'s-requested',photos_submitted:'s-submitted',pending_it:'s-requested',pending_hr:'s-requested',completed:'s-completed',cancelled:'s-cancelled'};
+
+let sigPads = {};
+
+function setupSig(id) {
+  const canvas = document.getElementById('sig-pad-'+id);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const resize = () => {
+    const r = canvas.getBoundingClientRect();
+    canvas.width = r.width; canvas.height = r.height;
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--text').trim();
+    ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  };
+  resize(); window.addEventListener('resize', resize);
+  let drawing = false;
+  const getPos = e => {
+    const r = canvas.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
+    return [x, y];
+  };
+  canvas.onmousedown = e => { drawing=true; const [x,y]=getPos(e); ctx.beginPath(); ctx.moveTo(x,y); e.preventDefault(); };
+  canvas.onmousemove = e => { if(!drawing) return; const [x,y]=getPos(e); ctx.lineTo(x,y); ctx.stroke(); e.preventDefault(); };
+  window.onmouseup = () => { drawing=false; };
+  canvas.ontouchstart = e => { drawing=true; const [x,y]=getPos(e); ctx.beginPath(); ctx.moveTo(x,y); e.preventDefault(); };
+  canvas.ontouchmove = e => { if(!drawing) return; const [x,y]=getPos(e); ctx.lineTo(x,y); ctx.stroke(); e.preventDefault(); };
+  canvas.ontouchend = () => { drawing=false; };
+  sigPads[id] = { canvas, ctx, clear: () => ctx.clearRect(0,0,canvas.width,canvas.height) };
+}
+
+async function openDetail(id){
+  console.log("Opening dismissal:", id);
+  const modal = document.getElementById('m-detail');
+  if(!modal) return console.error("Modal m-detail not found");
+  modal.classList.add('open');
+  
+  const body = document.getElementById('detail-body');
+  if(body) body.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text2);">⏳ Загрузка…</div>';
+  
+  const foot = document.getElementById('detail-foot');
+  if(foot) foot.innerHTML = '';
+
+  try {
+    const r = await fetch('/api/dismissals/'+id);
+    if(!r.ok) throw new Error("Fetch failed with status " + r.status);
+    const d = await r.json();
+    console.log("Dismissal data loaded:", d);
+  
+    console.log("Building stepper...");
+    const steps = [
+      {id:'pending', l:'Старт', s:['pending','photos_submitted']},
+      {id:'pending_aho', l:'АХО', s:['pending_aho']},
+      {id:'pending_it', l:'IT', s:['pending_it']},
+      {id:'pending_hr', l:'HR', s:['pending_hr','completed']}
+    ];
+    let curIdx = steps.findIndex(s=>s.s.includes(d.status));
+    if(curIdx === -1) curIdx = 0;
+
+    const stepper = `<div class="stepper">${steps.map((s,i)=>`
+      <div class="step ${i<curIdx?'done':(i===curIdx?'active':'')}">
+        <div class="step-dot">${i<curIdx?'✓':i+1}</div>
+        <div class="step-label">${s.l}</div>
+      </div>`).join('')}</div>`;
+
+    console.log("Building items HTML...");
+    const photos = d.photos_data?.photos || {};
+    const conditions = d.photos_data?.conditions || {};
+    const itemsHtml = (d.items||[]).map(i=>`
+      <div class="item-row">
+        ${getCatIcon(i.category, 32)}
+        <div style="flex:1;margin-left:10px;">
+          <div class="inv">${i.inv_num}</div>
+          <div style="font-size:12px;font-weight:600;">${i.model||i.category}</div>
+        </div>
+        ${conditions[i.id]?`<span style="font-size:10px;color:var(--text2);background:var(--surface3);padding:2px 6px;border-radius:4px;">${conditions[i.id]}</span>`:''}
+        ${photos[i.id]?'<span style="color:var(--green);font-size:11px;font-weight:700;">✓ ФОТО</span>':''}
+      </div>`).join('');
+
+    console.log("Preparing name and initial...");
+    const empInitial = (d.employee_name || "?")[0].toUpperCase();
+
+    console.log("Setting final innerHTML...");
+    document.getElementById('detail-body').innerHTML = `
+      <div style="padding:24px 32px 0;">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+          <div class="ava" style="width:56px;height:56px;font-size:24px;background:var(--accent);">${empInitial}</div>
+          <div>
+            <div style="font-size:22px;font-weight:800;letter-spacing:-0.5px;">Обходной лист</div>
+            <div style="font-size:14px;color:var(--text2);">${d.employee_name || 'Неизвестный сотрудник'}</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="copyLink(${id})">🔗 Ссылка</button>
+        </div>
+      ${stepper}
+      
+      <div class="bypass-section">
+        <div class="bs-head">
+          <div class="bs-icon" style="background:rgba(67,97,238,0.12);color:var(--accent);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </div>
+          <div class="bs-title">Подтверждение сотрудника</div>
+          <div class="bs-status" style="background:${d.employee_signature?'rgba(52,199,89,0.12);color:#34C759;':'rgba(255,159,10,0.12);color:#FF9F0A;'}">${d.employee_signature?'ПОДПИСАНО':'ОЖИДАЕТ'}</div>
+        </div>
+        ${d.employee_signature ? `
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;background:var(--surface3);padding:12px;border-radius:12px;">
+            <img src="${d.employee_signature}" style="height:44px;background:#fff;border-radius:8px;border:1px solid var(--border);">
+            <div style="font-size:13px;color:var(--text2);line-height:1.4;">Сотрудник подтвердил состояние техники и готовность к сдаче.</div>
+          </div>
+        ` : `<div style="font-size:13px;color:var(--text3);padding:12px;background:rgba(255,159,10,0.05);border-radius:12px;border:1px dashed rgba(255,159,10,0.2);">Сотрудник еще не отправил фото-отчет и подпись.</div>`}
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin:20px 0 10px;">Ссылка для сотрудника</div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input readonly value="${location.origin}/dismissal/${id}" style="flex:1;padding:12px;border:1px solid var(--border2);border-radius:12px;background:var(--surface3);color:var(--text);font-size:12px;font-family:ui-monospace,monospace;outline:none;">
+          <button class="btn btn-ghost btn-sm" onclick="copyLink(${id})" style="padding:12px 16px;">Копировать</button>
+        </div>
+      </div>
+
+      <div class="bypass-section" style="opacity:${d.employee_signature?1:0.5};">
+        <div class="bs-head">
+          <div class="bs-icon" style="background:rgba(0,122,255,0.12);color:#007AFF;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          </div>
+          <div class="bs-title">Приём техники (АХО)</div>
+          <div class="bs-status" style="background:${d.aho_cleared?'rgba(52,199,89,0.12);color:#34C759;':'rgba(255,159,10,0.12);color:#FF9F0A;'}">${d.aho_cleared?'ПРИНЯТО':'ОЖИДАЕТ'}</div>
+        </div>
+        <div class="items-list">${itemsHtml||'<div style="color:var(--text3);font-size:13px;padding:10px;">Техники нет</div>'}</div>
+        ${d.aho_cleared ? `<div style="margin-top:16px;display:flex;align-items:center;gap:12px;padding:12px;background:rgba(52,199,89,0.05);border-radius:12px;border:1px solid rgba(52,199,89,0.1);font-size:13px;">
+          <img src="${d.aho_signature}" style="height:36px;background:#fff;border-radius:6px;border:1px solid var(--border);">
+          <div style="color:var(--text2);">Проверено: <b style="color:var(--text);">${d.aho_by_name}</b></div>
+        </div>` : (d.employee_signature && (d.status==='pending_aho'||d.status==='photos_submitted') ? `
+          <div class="sig-box"><canvas id="sig-pad-aho"></canvas></div>
+          <div class="sig-hint">Распишитесь для подтверждения приёма всей техники</div>
+          <button class="btn btn-primary" style="width:100%;margin-top:16px;height:48px;font-weight:700;" onclick="signOff(${id},'aho')">Подтвердить приём</button>
+        ` : '')}
+      </div>
+
+      <div class="bypass-section" style="opacity:${d.aho_cleared?1:0.5};">
+        <div class="bs-head">
+          <div class="bs-icon" style="background:rgba(175,82,222,0.12);color:#AF52DE;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <div class="bs-title">IT-отключение (Системы)</div>
+          <div class="bs-status" style="background:${d.it_cleared?'rgba(52,199,89,0.12);color:#34C759;':'rgba(142,142,147,0.12);color:#8E8E93;'}">${d.it_cleared?'ОТКЛЮЧЕНО':'ОЖИДАЕТ'}</div>
+        </div>
+        ${d.it_cleared ? `<div style="margin-top:16px;display:flex;align-items:center;gap:12px;padding:12px;background:rgba(52,199,89,0.05);border-radius:12px;font-size:13px;">
+          <img src="${d.it_signature}" style="height:36px;background:#fff;border-radius:6px;border:1px solid var(--border);">
+          <div style="color:var(--text2);">Проверено: <b style="color:var(--text);">${d.it_by_name}</b></div>
+        </div>` : (d.status==='pending_it' ? `
+          <div class="sig-box"><canvas id="sig-pad-it"></canvas></div>
+          <div class="sig-hint">Подтвердите деактивацию всех корпоративных аккаунтов</div>
+          <button class="btn btn-primary" style="width:100%;margin-top:16px;height:48px;font-weight:700;" onclick="signOff(${id},'it')">Подтвердить IT-выход</button>
+        ` : '')}
+      </div>
+
+      <div class="bypass-section" style="opacity:${d.it_cleared?1:0.5};">
+        <div class="bs-head">
+          <div class="bs-icon" style="background:rgba(255,59,48,0.12);color:#FF3B30;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 11 11 13 15 9"/></svg>
+          </div>
+          <div class="bs-title">HR Финализация (Юридически)</div>
+          <div class="bs-status" style="background:${d.status==='completed'?'rgba(52,199,89,0.12);color:#34C759;':'rgba(142,142,147,0.12);color:#8E8E93;'}">${d.status==='completed'?'ЗАКРЫТО':'ОЖИДАЕТ'}</div>
+        </div>
+        ${d.status==='completed' ? `<div style="margin-top:16px;display:flex;align-items:center;gap:12px;padding:12px;background:rgba(52,199,89,0.05);border-radius:12px;font-size:13px;">
+          <img src="${d.hr_signature}" style="height:36px;background:#fff;border-radius:6px;border:1px solid var(--border);">
+          <div style="color:var(--text2);">Завершил: <b style="color:var(--text);">${d.hr_by_name}</b></div>
+        </div>` : (d.status==='pending_hr' ? `
+          <div class="sig-box"><canvas id="sig-pad-hr"></canvas></div>
+          <div class="sig-hint">Финальная подпись HR для деактивации сотрудника</div>
+          <button class="btn btn-red" style="width:100%;margin-top:16px;height:48px;font-weight:700;" onclick="signOff(${id},'hr')">Завершить увольнение</button>
+        ` : '')}
+      </div>
+    </div>`;
+
+  setTimeout(() => {
+    if (d.status==='pending_aho'||d.status==='photos_submitted') setupSig('aho');
+    if (d.status==='pending_it') setupSig('it');
+    if (d.status==='pending_hr') setupSig('hr');
+  }, 200);
+
+    document.getElementById('detail-foot').innerHTML = `<button class="btn btn-ghost" onclick="closeDetail()" style="width:100%;">Закрыть</button>`;
+  } catch(e) {
+    console.error("Error opening detail:", e);
+    const body = document.getElementById('detail-body');
+    if(body) body.innerHTML = `<div style="text-align:center;padding:32px;color:var(--red);">❌ Ошибка загрузки: ${e.message}</div>`;
+    document.getElementById('detail-foot').innerHTML = `<button class="btn btn-ghost" onclick="closeDetail()" style="width:100%;">Закрыть</button>`;
+  }
+}
+
+async function signOff(id, dept) {
+  const pad = sigPads[dept];
+  if(!pad) return;
+  const sig = pad.canvas.toDataURL();
+  const endpoint = dept === 'hr' ? 'finalize' : dept+'_accept';
+  const r = await (await fetch(`/api/dismissals/${id}/${endpoint}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ signature: sig })
+  })).json();
+  if(r.ok) {
+    toast('Подписано ✓', 'ok');
+    openDetail(id); // Reload modal
+  } else toast(r.error||'Ошибка', 'err');
+}
+
+function exportDismissal(did){window.open("/api/dismissals/"+did+"/export","_blank");}
+    function closeDetail(){ document.getElementById('m-detail').classList.remove('open'); }
+
+function copyLink(id){
+  navigator.clipboard.writeText(location.origin+'/dismissal/'+id);
+  toast('Ссылка скопирована','ok');
+}
+
+async function requestPhotos(id){
+  await fetch('/api/dismissals/'+id+'/request-photos',{method:'POST'});
+  toast('Статус обновлён','ok');
+  closeDetail();
+  location.reload();
+}
+
+async function confirmDismissal(id){
+  if(!confirm('Подтвердить передачу? Техника будет освобождена, сотрудник деактивирован.')) return;
+  const r = await (await fetch('/api/dismissals/'+id+'/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();
+  if(r.ok){ toast('Готово! Техника освобождена','ok'); closeDetail(); location.reload(); }
+  else toast(r.error||'Ошибка','err');
+}
+
+async function cancelDismissal(id){
+  if(!confirm('Отменить процесс увольнения?')) return;
+  await fetch('/api/dismissals/'+id+'/cancel',{method:'POST'});
+  toast('Отменено','ok'); closeDetail(); location.reload();
+}
+
+document.getElementById('m-detail').addEventListener('click',e=>{if(e.target===document.getElementById('m-detail'))closeDetail();});
+
+// Theme from localStorage
+(function(){
+  const t=localStorage.getItem('tracko-theme');
+  if(t) document.documentElement.setAttribute('data-theme',t);
+})();
+
+// Add Jinja filter workaround for from_json — data already rendered
+let _t; function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  document.getElementById('ti').textContent='●';
+  document.getElementById('tm').textContent=msg;
+  el.className='toast '+type+' show';
+  clearTimeout(_t);_t=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+computeStats();
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Tracko — Инвентаризация</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#f2f2f7;--surface:#fff;--surface2:#f2f2f7;--surface3:#e5e5ea;--border:rgba(0,0,0,.09);--border2:rgba(0,0,0,.15);--text:#1c1c1e;--text2:#6c6c70;--text3:#aeaeb2;--accent:#007AFF;--green:#34c759;--r:12px;--shadow:0 1px 3px rgba(0,0,0,.06);--sans:'Inter',system-ui,sans-serif;}
+[data-theme="dark"]{--bg:#000;--surface:#1c1c1e;--surface2:#2c2c2e;--surface3:#3a3a3c;--border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);--text:#f5f5f7;--text2:#98989d;--text3:#48484a;}
+html{-webkit-font-smoothing:antialiased;}body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
+.nav{position:sticky;top:0;z-index:100;height:56px;background:rgba(242,242,247,.88);backdrop-filter:blur(20px);border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;}
+[data-theme="dark"] .nav{background:rgba(0,0,0,.8);}
+.nav-left{display:flex;align-items:center;gap:12px;}.back{color:var(--accent);text-decoration:none;font-size:14px;font-weight:500;display:flex;align-items:center;gap:4px;}.nav-title{font-size:16px;font-weight:600;}
+.btn{font-family:var(--sans);font-size:13px;font-weight:500;padding:7px 14px;border-radius:980px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--accent);color:#fff;}.btn-ghost{background:var(--surface);color:var(--text2);border:.5px solid var(--border2);box-shadow:var(--shadow);}
+.content{max-width:860px;margin:0 auto;padding:24px 20px 60px;}
+.new-btn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--sans);margin-bottom:20px;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
+.new-btn:hover{opacity:.88;}
+.list{display:flex;flex-direction:column;gap:10px;}
+.card{background:var(--surface);border:.5px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shadow);cursor:pointer;transition:all .15s;}
+.card:hover{border-color:var(--accent);box-shadow:0 4px 16px rgba(0,122,255,.1);}
+.card-top{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.card-title{font-size:15px;font-weight:700;flex:1;}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;}
+.b-active{background:rgba(0,122,255,.12);color:var(--accent);}.b-done{background:rgba(52,199,89,.12);color:#34c759;}
+.card-meta{font-size:12px;color:var(--text2);margin-bottom:10px;}
+.prog-bar{height:8px;background:var(--surface3);border-radius:4px;overflow:hidden;margin-bottom:6px;}
+.prog-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .6s ease;}
+.prog-fill.done{background:#34c759;}
+.prog-label{font-size:12px;color:var(--text2);}
+.empty{text-align:center;padding:56px 20px;color:var(--text2);}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:.5;}.empty-txt{font-size:15px;font-weight:500;}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
+.overlay.open{display:flex;}@media(min-width:600px){.overlay{align-items:center;}}
+.sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;animation:su .3s cubic-bezier(.32,0,.67,0);}
+@media(min-width:600px){.sheet{border-radius:20px;}}@keyframes su{from{transform:translateY(40px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.sheet-head{display:flex;align-items:flex-start;justify-content:space-between;padding:20px 20px 0;}
+.sheet-title{font-size:17px;font-weight:700;}.sheet-x{background:var(--surface2);border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);}
+.sheet-body{padding:16px 20px;}.sheet-foot{padding:0 20px 20px;display:flex;gap:10px;}
+.field{margin-bottom:14px;}.field label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;}
+.field input{width:100%;background:var(--surface2);border:.5px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--text);font-family:var(--sans);font-size:14px;outline:none;transition:border .15s;}
+.field input:focus{border-color:var(--accent);}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:var(--bg);padding:10px 20px;border-radius:980px;font-size:13px;font-weight:500;z-index:999;transition:transform .25s;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);}.toast.err{background:#ff3b30;color:#fff;}
+</style>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#007AFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Tracko">
+</head>
+<body data-theme="{{ request.cookies.get('theme','') }}">
+<nav class="nav">
+  <div class="nav-left"><a href="/" class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>Главная</a><span class="nav-title">Инвентаризация</span></div>
+</nav>
+<div class="content">
+  {% if user.role in ('superadmin','aho') %}
+  <button class="new-btn" onclick="open_new()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Начать инвентаризацию
+  </button>
+  {% endif %}
+  <div class="list" id="list"><div class="empty"><div class="empty-icon">📋</div><div class="empty-txt">Загрузка…</div></div></div>
+</div>
+<div class="overlay" id="m">
+  <div class="sheet">
+    <div class="sheet-head"><div><div class="sheet-title">Новая инвентаризация</div></div><button class="sheet-x" onclick="close_m()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="sheet-body">
+      <div class="field"><label>Название *</label><input id="n-t" placeholder="Инвентаризация Q2 2026…"></div>
+      <div class="field"><label>Отдел (необязательно)</label><input id="n-d" placeholder="Все отделы"></div>
+    </div>
+    <div class="sheet-foot"><button class="btn btn-ghost" style="flex:1" onclick="close_m()">Отмена</button><button class="btn btn-primary" style="flex:1" onclick="create()">Создать</button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+function ts(s){if(!s)return'—';const d=new Date((s.includes('T')?s:s.replace(' ','T'))+'Z');return d.toLocaleDateString('ru',{day:'2-digit',month:'long',year:'numeric'});}
+async function load(){
+  const r=await fetch('/api/inventory/sessions').then(r=>r.json()).catch(()=>[]);
+  const el=document.getElementById('list');
+  if(!r.length){el.innerHTML='<div class="empty"><div class="empty-icon">📦</div><div class="empty-txt">Сессий нет — создайте первую</div></div>';return;}
+  el.innerHTML=r.map(s=>{
+    const pct=s.total_items?Math.round(s.checked_items/s.total_items*100):0;
+    const done=s.status==='completed';
+    return`<div class="card">
+      <div class="card-top"><span class="card-title">${s.title}</span><span class="badge ${done?'b-done':'b-active'}">${done?'✅ Завершено':'🔄 Активна'}</span></div>
+      <div class="card-meta">${s.created_by_name||'—'} · ${ts(s.created_at)}${s.department?' · '+s.department:''}</div>
+      <div class="prog-bar"><div class="prog-fill${done?' done':''}" style="width:${pct}%"></div></div>
+      <div class="prog-label">Проверено ${s.checked_items||0} / ${s.total_items||0} (${pct}%)</div>
+    </div>`;
+  }).join('');
+}
+function open_new(){document.getElementById('m').classList.add('open');}
+function close_m(){document.getElementById('m').classList.remove('open');}
+document.getElementById('m').addEventListener('click',e=>{if(e.target===document.getElementById('m'))close_m();});
+async function create(){
+  const t=document.getElementById('n-t').value.trim(),d=document.getElementById('n-d').value.trim();
+  if(!t){toast('Укажите название','err');return;}
+  const r=await fetch('/api/inventory/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:t,department:d||null})});
+  const res=await r.json();
+  if(res.ok){toast(`Создана — ${res.total_items} активов ✓`);close_m();document.getElementById('n-t').value='';load();}else toast(res.error||'Ошибка','err');
+}
+function toast(m,t='ok'){const el=document.getElementById('toast');el.textContent=m;el.className='toast show'+(t==='err'?' err':'');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2600);}
+load();
+</script>
+</body></html>

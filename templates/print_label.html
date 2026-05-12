@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Печать — {{ item.inv_num }} — Tracko</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, 'Inter', 'Segoe UI', Arial, sans-serif;
+      background: #f5f5f7; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; min-height: 100vh;
+    }
+    .preview {
+      background: #fff; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.1);
+      padding: 32px; text-align: center; max-width: 320px; width: 90%;
+    }
+    .preview img {
+      width: 200px; height: 200px; image-rendering: crisp-edges;
+      display: block; margin: 0 auto 16px;
+    }
+    .inv-num {
+      font-family: ui-monospace, 'SF Mono', 'Courier New', monospace;
+      font-size: 22px; font-weight: 900; color: #007AFF;
+      letter-spacing: .03em; margin-bottom: 8px;
+    }
+    .model { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .detail { font-size: 13px; color: #666; margin-bottom: 2px; }
+    .actions {
+      display: flex; gap: 10px; margin-top: 20px; justify-content: center;
+    }
+    .btn {
+      padding: 10px 24px; border-radius: 980px; border: none;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: all .15s;
+    }
+    .btn-primary { background: #007AFF; color: #fff; }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-secondary { background: #e5e5ea; color: #1c1c1e; }
+    .btn-secondary:hover { background: #d1d1d6; }
+
+    /* Print styles */
+    @page { margin: 0; }
+    @media print {
+      body { 
+        background: #fff !important; 
+        color: #000 !important;
+      }
+      .actions, .no-print { display: none !important; }
+      .preview, .preview * {
+        color: #000 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        padding: 5mm !important;
+        max-width: none !important;
+        width: 100% !important;
+      }
+      .preview img {
+        width: 50mm !important; height: 50mm !important;
+      }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    }
+  </style>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#007AFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Tracko">
+</head>
+<body>
+  <div class="preview">
+    <img id="qr-img" src="/api/qr/{{ item.inv_num }}" alt="QR {{ item.inv_num }}">
+    <div class="inv-num">{{ item.inv_num }}</div>
+    <div class="model">{{ item.model or item.category }}</div>
+    <div class="detail">📍 {{ item.room }}{% if item.place %} · {{ item.place }}{% endif %}</div>
+    {% if item.employee and item.employee != '—' %}
+    <div class="detail">👤 {{ item.employee }}</div>
+    {% endif %}
+    {% if item.serial_num and item.serial_num != '—' %}
+    <div class="detail">🔢 {{ item.serial_num }}</div>
+    {% endif %}
+    <div class="actions no-print">
+      <button class="btn btn-primary" onclick="doPrint()">🖨️ Печатать</button>
+      <a class="btn btn-secondary" href="/asset/{{ item.inv_num }}">← Назад</a>
+    </div>
+  </div>
+
+  <script>
+    function doPrint() {
+      const img = document.getElementById('qr-img');
+      if(img.complete && img.naturalWidth > 0) {
+        window.print();
+      } else {
+        img.onload = () => window.print();
+        // Safety timeout
+        setTimeout(() => window.print(), 2000);
+      }
+    }
+  </script>
+</body>
+</html>

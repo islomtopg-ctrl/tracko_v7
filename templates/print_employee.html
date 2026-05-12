@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Бейдж — {{ user.name }} — Tracko</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, 'Inter', sans-serif;
+      background: #f5f5f7; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; min-height: 100vh;
+    }
+    .preview {
+      background: #fff; border-radius: 24px; box-shadow: 0 12px 40px rgba(0,0,0,.15);
+      padding: 40px; text-align: center; max-width: 340px; width: 90%;
+      border: 1px solid rgba(0,0,0,.05);
+    }
+    .preview img {
+      width: 200px; height: 200px; image-rendering: crisp-edges;
+      display: block; margin: 0 auto 24px;
+      border: 1px solid #eee; border-radius: 12px; padding: 10px;
+    }
+    .name { font-size: 24px; font-weight: 800; color: #1c1c1e; margin-bottom: 6px; }
+    .role { font-size: 14px; font-weight: 600; color: #007AFF; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+    .dept { font-size: 14px; color: #8e8e93; }
+    
+    .actions { display: flex; gap: 12px; margin-top: 32px; justify-content: center; }
+    .btn {
+      padding: 12px 24px; border-radius: 980px; border: none;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: all .2s;
+    }
+    .btn-primary { background: #007AFF; color: #fff; box-shadow: 0 4px 12px rgba(0,122,255,0.3); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,122,255,0.4); }
+    .btn-secondary { background: #e5e5ea; color: #1c1c1e; }
+    
+    @page { size: 58mm 80mm; margin: 0; }
+    @media print {
+      body { background: #fff !important; }
+      .actions, .no-print { display: none !important; }
+      .preview {
+        box-shadow: none !important; border: none !important;
+        padding: 5mm !important; width: 100% !important; max-width: none !important;
+      }
+      .preview img { width: 45mm !important; height: 45mm !important; margin-bottom: 5mm !important; }
+      .name { font-size: 18px !important; }
+      .role { font-size: 10px !important; }
+      .dept { font-size: 10px !important; }
+    }
+  </style>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#007AFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Tracko">
+</head>
+<body>
+  <div class="preview">
+    <img id="qr-img" src="/api/user/{{ user.id }}/qr" alt="QR {{ user.name }}">
+    <div class="role">Сотрудник Tracko</div>
+    <div class="name">{{ user.name }}</div>
+    <div class="dept">{{ user.department or 'Основной отдел' }}</div>
+    
+    <div class="actions no-print">
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Печать</button>
+      <button class="btn btn-secondary" onclick="window.close()">Закрыть</button>
+    </div>
+  </div>
+</body>
+</html>

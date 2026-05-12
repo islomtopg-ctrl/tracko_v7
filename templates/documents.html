@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Документооборот — Tracko</title>
+  <link rel="stylesheet" href="/static/css/tracko-ios.css">
+  <style>
+    .doc-page{display:flex;height:calc(100dvh - 52px);overflow:hidden;background:var(--bg);}
+    .doc-sidebar{width:340px;flex-shrink:0;border-right:1px solid var(--glass-border);background:var(--sidebar-bg);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);display:flex;flex-direction:column;overflow:hidden;}
+    .doc-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;background:var(--bg);}
+    
+    /* Centered Modals Overlay Override */
+    .overlay { display: flex !important; align-items: center !important; justify-content: center !important; }
+    .sheet { 
+      border-radius: 28px !important; 
+      transform: translateY(30px) scale(0.95) !important; 
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      max-width: 500px !important;
+      margin: 20px;
+    }
+    .overlay.open .sheet { transform: translateY(0) scale(1) !important; opacity: 1; }
+    .sheet-handle { display: none; } /* Hide bottom-sheet handle for centered modal */
+
+    @media(max-width:768px){
+      .doc-sidebar{position:fixed;left:0;top:52px;bottom:0;z-index:150;transform:translateX(-100%);transition:transform .4s cubic-bezier(0.16, 1, 0.3, 1);}
+      .doc-sidebar.open{transform:translateX(0);box-shadow:20px 0 50px rgba(0,0,0,.3);}
+    }
+    
+    .dsb-head{padding:24px 20px 12px;display:flex;align-items:center;justify-content:space-between;}
+    .dsb-title{font-size:24px;font-weight:900;letter-spacing:-0.8px;}
+    
+    .dsb-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px 24px;}
+    .dsb-stat{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:20px;padding:16px;transition:all 0.3s cubic-bezier(0.16, 1, 0.3, 1);}
+    .dsb-stat:hover{transform:translateY(-2px);background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.1);}
+    .dsb-stat-n{font-size:24px;font-weight:900;margin-bottom:2px;}
+    .dsb-stat-l{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;opacity:0.5;}
+    
+    .dsb-search{padding:0 20px 20px;}
+    .search-wrap{position:relative;background:rgba(255,255,255,0.05);border-radius:14px;padding:10px 12px 10px 40px;border:1px solid transparent;transition:all 0.3s;}
+    .search-wrap:focus-within{background:rgba(255,255,255,0.08);border-color:var(--ios-blue);box-shadow:0 0 0 4px rgba(99, 102, 241, 0.15);}
+    .search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;}
+    .search-wrap input{background:none;border:none;color:var(--text);font-size:15px;width:100%;outline:none;font-family:var(--sans);}
+
+    .dsb-filters{display:flex;gap:8px;padding:0 20px 20px;overflow-x:auto;scrollbar-width:none;}
+    .dsb-filters::-webkit-scrollbar{display:none;}
+    .dsb-filter{padding:8px 16px;border-radius:12px;background:rgba(255,255,255,0.05);border:none;font-size:13px;font-weight:700;color:var(--text2);cursor:pointer;white-space:nowrap;transition:all 0.2s;}
+    .dsb-filter.on{background:var(--ios-blue);color:#fff;box-shadow:0 8px 16px rgba(99, 102, 241, 0.3);}
+    
+    .doc-list{flex:1;overflow-y:auto;padding:0 12px 20px;}
+    .doc-item{padding:16px 18px;border-radius:18px;cursor:pointer;margin-bottom:8px;transition:all 0.2s;background:transparent;border:1px solid transparent;position:relative;}
+    .doc-item:hover{background:rgba(255,255,255,0.04);}
+    .doc-item.active{background:rgba(99, 102, 241, 0.08);border-color:rgba(99, 102, 241, 0.2);box-shadow:0 10px 30px rgba(0,0,0,0.15);}
+    
+    .di-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+    .di-num{font-size:11px;font-weight:900;color:var(--accent);letter-spacing:0.5px;}
+    .di-title{font-size:16px;font-weight:800;line-height:1.3;margin-bottom:6px;color:var(--text);}
+    .di-meta{font-size:12px;color:var(--text3);margin-bottom:12px;font-weight:500;}
+    .di-footer{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text3);font-weight:600;}
+    
+    .new-doc-btn{margin:0 20px 24px;padding:16px;background:linear-gradient(135deg, var(--ios-blue), var(--ios-purple));color:#fff;border:none;border-radius:18px;cursor:pointer;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 12px 24px rgba(99, 102, 241, 0.25);transition:all 0.3s cubic-bezier(0.16, 1, 0.3, 1);}
+    .new-doc-btn:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 20px 40px rgba(99, 102, 241, 0.35);}
+    
+    .doc-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;background:radial-gradient(circle at center, rgba(99, 102, 241, 0.04) 0%, transparent 70%);}
+    .empty-icon-wrap{width:140px;height:140px;background:rgba(255,255,255,0.02);border-radius:48px;display:flex;align-items:center;justify-content:center;margin-bottom:32px;border:1px solid rgba(255,255,255,0.05);position:relative;box-shadow:0 20px 40px rgba(0,0,0,0.2);}
+    .empty-icon-wrap svg{color:var(--ios-blue);filter:drop-shadow(0 0 20px rgba(99,102,241,0.4));}
+    
+    .doc-detail{display:none;flex-direction:column;height:100%;background:var(--bg);}
+    .doc-detail.show{display:flex;animation: premiumFade 0.5s cubic-bezier(0.16, 1, 0.3, 1);}
+    @keyframes premiumFade { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+    .dd-head{padding:40px 50px 32px;display:flex;align-items:flex-start;gap:24px;}
+    .dd-title{font-size:32px;font-weight:900;letter-spacing:-1.2px;line-height:1.1;}
+    .dd-meta{font-size:14px;color:var(--text3);font-weight:500;margin-top:8px;}
+    
+    .dd-chain{padding:0 50px 32px;}
+    .chain-steps{background:rgba(255,255,255,0.02);padding:24px;border-radius:24px;border:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;}
+    
+    .dd-body{flex:1;overflow-y:auto;display:flex;padding:0 50px 50px;gap:40px;}
+    .dd-left{flex:1;min-width:0;}
+    .dd-right{width:320px;flex-shrink:0;}
+    
+    @media(max-width:1024px){ .dd-body{flex-direction:column;} .dd-right{width:100%;} .dd-head, .dd-chain, .dd-body{padding-left:30px; padding-right:30px;} }
+
+    .info-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:24px;padding:12px;}
+    .info-row{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;justify-content:space-between;align-items:center;}
+    .info-row:last-child{border-bottom:none;}
+    .info-key{font-size:13px;font-weight:600;opacity:0.5;}
+    .info-val{font-size:14px;font-weight:700;}
+    
+    .desc-box{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:22px;padding:24px;font-size:16px;line-height:1.7;color:var(--text2);}
+    
+    .role-banner{margin-bottom:32px;padding:20px 24px;border-radius:20px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:14px;border-width:2px !important;}
+    .rb-warn{background:rgba(255,149,0,0.1) !important; border-color:rgba(255,149,0,0.2) !important; color:#FF9500 !important;}
+    .rb-info{background:rgba(99,102,241,0.1) !important; border-color:rgba(99,102,241,0.2) !important; color:var(--ios-blue) !important;}
+    
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:10px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;}
+    .badge svg{width:12px;height:12px;flex-shrink:0;}
+    .badge-pending{background:rgba(255,149,0,0.1);color:#FF9500;}
+    .badge-approved{background:rgba(52,199,89,0.1);color:#34C759;}
+    .badge-rejected{background:rgba(255,59,48,0.1);color:#FF3B30;}
+    .badge-printed{background:rgba(99,102,241,0.1);color:var(--ios-blue);}
+    .badge-draft{background:rgba(255,255,255,0.05);color:var(--text3);}
+    .badge-high{background:rgba(255,149,0,0.15);color:#FF9500;}
+    .badge-urgent{background:rgba(255,59,48,0.15);color:#FF3B30;animation: pulseUrgent 1.5s infinite;}
+    @keyframes pulseUrgent { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+    .dd-num{font-size:14px;font-weight:900;color:var(--accent);letter-spacing:1px;}
+    
+    .sec-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin:24px 0 12px;display:flex;align-items:center;gap:8px;}
+    .sec-title::after{content:'';flex:1;height:1px;background:var(--separator2);opacity:0.5;}
+
+    /* Approval List */
+    .appr-list{display:flex;flex-direction:column;gap:12px;}
+    .appr-item{display:flex;gap:16px;padding:16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:18px;}
+    .appr-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--separator2);color:var(--text3);}
+    .appr-dot.approved{background:#34C759;color:#fff;}
+    .appr-dot.rejected{background:#FF3B30;color:#fff;}
+    .appr-dot.current{background:var(--ios-blue);color:#fff;}
+    .appr-role{font-size:14px;font-weight:800;margin-bottom:2px;}
+    .appr-who{font-size:13px;font-weight:600;color:var(--text);}
+    .appr-time{font-size:11px;color:var(--text3);font-weight:500;margin-top:2px;}
+    .appr-cmt{font-size:13px;color:var(--text2);margin-top:8px;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:10px;border-left:3px solid var(--separator2);}
+
+    /* Comments */
+    .comment-list{display:flex;flex-direction:column;gap:16px;}
+    .comment-item{display:flex;gap:12px;}
+    .comment-ava{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;}
+    .comment-bub{flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:18px;padding:12px 16px;}
+    .comment-who{display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:4px;}
+    .comment-txt{font-size:14px;line-height:1.5;color:var(--text2);white-space:pre-wrap;}
+    
+    .comment-input{margin-top:20px;display:flex;gap:10px;background:rgba(255,255,255,0.05);border-radius:20px;padding:8px 8px 8px 16px;border:1px solid rgba(255,255,255,0.08);}
+    .comment-input textarea{flex:1;background:none;border:none;color:var(--text);font-size:14px;outline:none;padding:8px 0;resize:none;max-height:120px;font-family:var(--sans);}
+    .ci-send{width:36px;height:36px;border-radius:50%;background:var(--ios-blue);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+    .ci-send:hover{transform:scale(1.1);filter:brightness(1.1);}
+
+    .dd-actions{padding:24px 50px;border-top:1px solid var(--separator2);background:var(--sidebar-bg);backdrop-filter:blur(20px);display:flex;gap:12px;align-items:center;}
+    .btn-approve{flex:1;padding:14px;background:#34C759;color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.2s;}
+    .btn-reject{padding:14px 24px;background:rgba(255,59,48,0.1);color:#FF3B30;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.2s;}
+    .btn-print-close{flex:1;padding:14px;background:var(--ios-blue);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.2s;}
+    .spin{animation:rotate 2s linear infinite;}
+    .signature-wrap {
+      margin-top: 16px; background: var(--surface2); border: 1.5px dashed var(--separator);
+      border-radius: 18px; padding: 4px; position: relative; cursor: crosshair;
+    }
+    #sig-pad { width: 100%; height: 160px; background: #fff; border-radius: 14px; touch-action: none; }
+    .sig-clear { position: absolute; top: 12px; right: 12px; background: var(--surface2); border: none; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; color: var(--text3); cursor: pointer; transition: all 0.2s; }
+    .sig-clear:hover { background: var(--ios-red); color: #fff; }
+    @media (prefers-color-scheme: dark) { #sig-pad { background: #1e293b; } }
+    [data-theme="dark"] #sig-pad { background: #1e293b; }
+    
+    @keyframes rotate{100%{transform:rotate(360deg);}}
+  </style>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#007AFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Tracko">
+</head>
+<body>
+<nav class="ios-nav">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button id="mob-sb-btn" onclick="document.getElementById('doc-sidebar').classList.toggle('open')" style="background:none;border:none;cursor:pointer;color:var(--text);padding:4px;display:none;">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <a href="/dashboard" class="nav-back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>Главная</a>
+  </div>
+  <span class="nav-title">Документооборот</span>
+  <div style="display:flex;align-items:center;gap:7px;">
+    <span id="pending-badge" style="display:none;font-size:11px;padding:3px 9px;border-radius:980px;background:rgba(255,59,48,.1);color:#FF3B30;font-weight:600;"></span>
+    <span style="font-size:12px;color:var(--text2);">{{ current_user.name }}</span>
+  </div>
+</nav>
+
+<div class="doc-page">
+  <div class="doc-sidebar" id="doc-sidebar">
+    <div class="dsb-head">
+      <div class="dsb-title">Документы</div>
+      <div id="dsb-count" style="font-size:12px;font-weight:600;opacity:0.5;">0</div>
+    </div>
+    
+    <div class="dsb-stats">
+      <div class="dsb-stat">
+        <div class="dsb-stat-n" id="st-p" style="color:#FF9500;">0</div>
+        <div class="dsb-stat-l">Ожидают</div>
+      </div>
+      <div class="dsb-stat">
+        <div class="dsb-stat-n" id="st-a" style="color:#34C759;">0</div>
+        <div class="dsb-stat-l">Готово</div>
+      </div>
+    </div>
+
+    <div class="dsb-search">
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="doc-search" placeholder="Поиск документа…" oninput="renderList()">
+      </div>
+    </div>
+
+    <div class="dsb-filters">
+      <button class="dsb-filter on" onclick="filterDocs('',this)">Все</button>
+      <button class="dsb-filter" onclick="filterDocs('pending',this)">Ожидают</button>
+      <button class="dsb-filter" onclick="filterDocs('approved',this)">Утверждены</button>
+      <button class="dsb-filter" onclick="filterDocs('rejected',this)">Отклонены</button>
+    </div>
+
+    {% if current_user.role in ('employee','aho','hr','superadmin','director','deputy') %}
+    <button class="new-doc-btn" onclick="openNewDoc()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Новый документ
+    </button>
+    {% endif %}
+
+    <div class="doc-list" id="doc-list">
+      <div style="padding:40px;text-align:center;opacity:0.3;">Загрузка…</div>
+    </div>
+  </div>
+
+  <div class="doc-main">
+    <div class="doc-empty" id="doc-empty">
+      <div class="empty-icon-wrap">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:8px;color:var(--text);">Выберите документ</div>
+      <div style="font-size:14px;color:var(--text3);max-width:320px;line-height:1.6;">
+        {% if current_user.role == 'employee' %}Создайте новую заявку через кнопку в боковой панели или выберите существующую из списка слева.
+        {% else %}Выберите документ из списка слева для просмотра деталей, истории согласования и внесения решения.{% endif %}
+      </div>
+    </div>
+    <div class="doc-detail" id="doc-detail">
+      <div class="dd-head">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:3px;">
+            <div class="dd-num" id="dd-num"></div>
+            <span id="dd-sbadge"></span><span id="dd-pbadge"></span>
+          </div>
+          <div class="dd-title" id="dd-title"></div>
+          <div class="dd-meta"  id="dd-meta"></div>
+        </div>
+        <button onclick="closeDetail()" style="background:var(--surface2);border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="dd-chain">
+        <div class="chain-label">Цепочка согласования</div>
+        <div class="chain-steps" id="dd-chain"></div>
+      </div>
+      <div class="dd-body">
+        <div class="dd-left">
+          <div id="role-banner" style="display:none;"></div>
+          <div id="dd-desc-wrap" style="display:none;"><div class="sec-title">Описание</div><div class="desc-box" id="dd-desc"></div></div>
+          <div class="sec-title">История согласования</div>
+          <div class="appr-list" id="dd-appr"></div>
+          <div class="sec-title" style="margin-top:4px;">Комментарии</div>
+          <div class="comment-list" id="dd-comments"></div>
+          <div class="comment-input">
+            <textarea id="ci" placeholder="Написать комментарий…" rows="1" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+            <button class="ci-send" onclick="sendComment()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+          </div>
+        </div>
+        <div class="dd-right">
+          <div class="sec-title">Детали</div>
+          <div class="info-card" id="dd-info"></div>
+        </div>
+      </div>
+      <div class="dd-actions" id="dd-act"></div>
+    </div>
+  </div>
+</div>
+
+<!-- NEW DOC MODAL -->
+<div class="overlay" id="m-new">
+  <div class="sheet" style="max-width:480px;">
+    <span class="sheet-handle"></span>
+    <div class="sheet-head">
+      <div><div class="sheet-title">Новый документ</div><div style="font-size:12px;color:var(--text2);">Отправить на согласование</div></div>
+      <button type="button" class="sheet-x" onclick="closeM('m-new')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="sheet-body">
+      <div class="field" style="margin-bottom:12px;">
+        <label>Тип *</label>
+        <select id="nd-type" onchange="updChain()" style="background:var(--surface2);border:none;border-radius:9px;padding:10px 13px;color:var(--text);font-size:14px;font-family:var(--sans);width:100%;">
+          {% for k,v in doc_types.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}
+        </select>
+        <div id="nd-chain" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:7px;padding:7px;background:var(--surface2);border-radius:7px;min-height:30px;"></div>
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label>Название *</label>
+        <input id="nd-t" placeholder="Кратко опишите суть…" style="background:var(--surface2);border:none;border-radius:9px;padding:10px 13px;color:var(--text);font-size:14px;font-family:var(--sans);width:100%;outline:none;">
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label>Обоснование</label>
+        <textarea id="nd-d" placeholder="Подробно — что, зачем, для кого…" style="background:var(--surface2);border:none;border-radius:9px;padding:10px 13px;color:var(--text);font-size:13px;font-family:var(--sans);width:100%;height:70px;resize:none;outline:none;"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="field"><label>Приоритет</label>
+          <select id="nd-p" style="background:var(--surface2);border:none;border-radius:9px;padding:10px 13px;color:var(--text);font-size:13px;font-family:var(--sans);width:100%;">
+            <option value="low">🟢 Низкий</option><option value="normal" selected>🔵 Обычный</option>
+            <option value="high">🟠 Высокий</option><option value="urgent">🔴 Срочно</option>
+          </select></div>
+        <div class="field"><label>Дедлайн</label>
+          <input type="date" id="nd-dl" style="background:var(--surface2);border:none;border-radius:9px;padding:10px 13px;color:var(--text);font-size:13px;font-family:var(--sans);width:100%;outline:none;"></div>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn btn-secondary" onclick="closeM('m-new')">Отмена</button>
+      <button class="btn btn-primary" onclick="submitDoc()" style="margin-left:auto;">Отправить →</button>
+    </div>
+  </div>
+</div>
+
+<!-- APPROVE MODAL -->
+<div class="overlay" id="m-appr">
+  <div class="sheet" style="max-width:420px;">
+    <span class="sheet-handle"></span>
+    <div class="sheet-head">
+      <div><div class="sheet-title" id="am-t">Согласование</div><div id="am-s" style="font-size:12px;color:var(--text2);"></div></div>
+      <button type="button" class="sheet-x" onclick="closeM('m-appr')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="sheet-body">
+      <div class="field" style="margin-bottom:16px;">
+        <label>Комментарий (необязательно)</label>
+        <textarea id="am-c" placeholder="Добавьте пояснение…" style="background:var(--surface2);border:none;border-radius:9px;padding:10px 13px;color:var(--text);font-size:13px;font-family:var(--sans);width:100%;height:60px;resize:none;outline:none;"></textarea>
+      </div>
+      <div id="sig-section">
+        <label style="font-size:12px; font-weight:600; text-transform:uppercase; color:var(--text2); letter-spacing:0.04em;">Ваша подпись *</label>
+        <div class="signature-wrap">
+          <canvas id="sig-pad"></canvas>
+          <button class="sig-clear" onclick="clearSig()">Очистить</button>
+        </div>
+        <div style="font-size:11px; color:var(--text3); margin-top:8px; text-align:center;">Распишитесь в поле выше (мышкой или пальцем)</div>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn btn-secondary" onclick="closeM('m-appr')">Отмена</button>
+      <button id="am-btn" class="btn btn-primary" onclick="doApprove()" style="margin-left:auto;">Подтвердить</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ME={role:"{{ current_user.role }}",name:"{{ current_user.name }}",id:{{ current_user.id }}};
+const CHAIN={{approval_chain|tojson}},DT={{doc_types|tojson}};
+const PL={low:"🟢 Низкий",normal:"🔵 Обычный",high:"🟠 Высокий",urgent:"🔴 Срочно"};
+const CLR=["#007AFF","#AF52DE","#34C759","#FF9500","#5856D6","#5AC8FA","#FF3B30","#30B0C7"];
+let docs=[],curId=null,curAct=null;
+let sigPad=null, sigCtx=null, drawing=false;
+
+function initSigPad() {
+  const canvas = document.getElementById('sig-pad');
+  if (!canvas) return;
+  sigPad = canvas;
+  sigCtx = canvas.getContext('2d');
+  
+  // Resize to actual display size
+  const resize = () => {
+    const r = canvas.getBoundingClientRect();
+    canvas.width = r.width;
+    canvas.height = r.height;
+    sigCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#000';
+    sigCtx.lineWidth = 3;
+    sigCtx.lineJoin = 'round';
+    sigCtx.lineCap = 'round';
+  };
+  window.addEventListener('resize', resize);
+  resize();
+
+  const getPos = (e) => {
+    const r = canvas.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
+    return [x, y];
+  };
+
+  const start = (e) => { drawing = true; const [x,y] = getPos(e); sigCtx.beginPath(); sigCtx.moveTo(x,y); e.preventDefault(); };
+  const move = (e) => { if(!drawing) return; const [x,y] = getPos(e); sigCtx.lineTo(x,y); sigCtx.stroke(); e.preventDefault(); };
+  const stop = () => { drawing = false; };
+
+  canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); window.addEventListener('mouseup', stop);
+  canvas.addEventListener('touchstart', start); canvas.addEventListener('touchmove', move); window.addEventListener('touchend', stop);
+}
+
+function clearSig() { if(sigCtx) sigCtx.clearRect(0, 0, sigPad.width, sigPad.height); }
+
+function fmt(s){if(!s)return"—";const d=new Date((s.includes("T")?s:s.replace(" ","T"))+"Z");return isNaN(d)?s:d.toLocaleString("ru",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});}
+function fmtD(s){if(!s)return"—";const d=new Date(s.includes("T")?s:s+"T00:00:00");return isNaN(d)?s:d.toLocaleDateString("ru",{day:"2-digit",month:"long",year:"numeric"});}
+
+function getIcon(st){
+  const m={
+    pending: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    approved:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`,
+    rejected:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+    printed: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>`,
+    draft:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`
+  };
+  return m[st]||m.draft;
+}
+function getPIcon(p){
+  const m={
+    low:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg>`,
+    normal: ``,
+    high:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg>`,
+    urgent: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`
+  };
+  return m[p]||"";
+}
+
+function sb(st){
+  const m={
+    pending: ["badge-pending", "На рассмотрении"],
+    approved:["badge-approved","Утверждено"],
+    rejected:["badge-rejected","Отклонено"],
+    printed: ["badge-printed", "Закрыт"],
+    draft:   ["badge-draft",   "Черновик"]
+  };
+  const [c, l] = m[st] || ["badge-draft", st];
+  return `<span class="badge ${c}">${getIcon(st)} ${l}</span>`;
+}
+function pb(p){
+  if(!p || p==="normal") return "";
+  const m={low:"badge-draft", high:"badge-high", urgent:"badge-urgent"};
+  return `<span class="badge ${m[p]||""}">${getPIcon(p)} ${PL[p]||p}</span>`;
+}
+
+async function loadDocs(sf=""){docs=await(await fetch("/api/documents"+(sf?`?status=${sf}`:""))).json();renderList();document.getElementById("dsb-count").textContent=docs.length+" документ(ов)";}
+async function loadStats(){const s=await(await fetch("/api/documents/stats")).json();document.getElementById("st-p").textContent=s.pending;document.getElementById("st-a").textContent=s.approved;document.getElementById("st-t").textContent=s.total;if(s.my_pending>0){document.getElementById("pending-badge").textContent=`Ждут: ${s.my_pending}`;document.getElementById("pending-badge").style.display="inline-flex";document.getElementById("my-p-txt").textContent=`${s.my_pending} документ(а) ждут вас`;document.getElementById("my-p").classList.add("show");}}
+function filterDocs(st,btn){document.querySelectorAll(".dsb-filter").forEach(b=>b.classList.remove("on"));btn.classList.add("on");loadDocs(st);}
+function renderList(){
+  const el=document.getElementById("doc-list");
+  const query=document.getElementById("doc-search").value.toLowerCase();
+  let filtered=docs;
+  if(query) filtered=docs.filter(d=>[d.doc_number,d.title,d.created_by_name].some(v=>v.toLowerCase().includes(query)));
+  
+  if(!filtered.length){
+    el.innerHTML='<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px;">Ничего не найдено</div>';
+    return;
+  }
+  el.innerHTML=filtered.map(d=>`
+    <div class="doc-item${d.id===curId?" active":""}" id="dli-${d.id}" onclick="openDoc(${d.id})">
+      <div class="di-top">
+        <span class="di-num">${d.doc_number}</span>
+        <div style="margin-left:auto;">${sb(d.status)}</div>
+      </div>
+      <div class="di-title">${d.title}</div>
+      <div class="di-meta">${DT[d.doc_type]||d.doc_type} · ${d.created_by_name}</div>
+      <div class="di-footer">
+        <span>${fmtD(d.created_at)}</span>
+        <span style="display:flex;align-items:center;gap:4px;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:0.5;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          ${d.approved_steps||0}/${d.total_steps||0}
+          ${d.comment_count>0?` · <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:0.5;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> ${d.comment_count}`:""}
+        </span>
+      </div>
+    </div>`).join("");
+}
+
+async function openDoc(id){curId=id;document.querySelectorAll(".doc-item").forEach(e=>e.classList.remove("active"));document.getElementById("dli-"+id)?.classList.add("active");const r=await(await fetch("/api/documents/"+id)).json();render(r);if(window.innerWidth<=768)document.getElementById("doc-sidebar").classList.remove("open");}
+function render({doc,approvals,comments,chain}){
+  document.getElementById("doc-empty").style.display="none";
+  document.getElementById("doc-detail").classList.add("show");
+  document.getElementById("dd-num").textContent=doc.doc_number;
+  document.getElementById("dd-sbadge").innerHTML=sb(doc.status);
+  document.getElementById("dd-pbadge").innerHTML=pb(doc.priority);
+  document.getElementById("dd-title").textContent=doc.title;
+  document.getElementById("dd-meta").textContent=`${DT[doc.doc_type]||doc.doc_type} · ${doc.created_by_name} · ${fmtD(doc.created_at)}`;
+  if(doc.description){document.getElementById("dd-desc-wrap").style.display="block";document.getElementById("dd-desc").textContent=doc.description;}else document.getElementById("dd-desc-wrap").style.display="none";
+  document.getElementById("dd-chain").innerHTML=chain.map(s=>{const a=approvals.find(x=>x.step===s.step);let cls="",ico=s.step;if(a?.action==="approved"){cls="done";ico=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>`;}else if(a?.action==="rejected"){cls="rejected";ico=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;}else if(doc.current_step===s.step&&doc.status==="pending"){cls="current";ico=`<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>`;}return`<div class="chain-step ${cls}"><div class="cs-dot">${ico}</div><div class="cs-name">${s.label}</div></div>`;}).join("");
+  document.getElementById("dd-appr").innerHTML=chain.map(s=>{const a=approvals.find(x=>x.step===s.step);let cls="pending",ico="…",who="",tm="",cmt="",sig="";if(a?.action==="approved"){cls="approved";ico=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>`;who=a.approver_name||"";tm=fmt(a.acted_at);cmt=a.comment||"";if(a.signature)sig=`<div style="margin-top:8px;"><img src="${a.signature}" style="max-height:50px; border-radius:8px; background:#fff; border:1px solid var(--separator2);"></div>`;}else if(a?.action==="rejected"){cls="rejected";ico=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;who=a.approver_name||"";tm=fmt(a.acted_at);cmt=a.comment||"";}else if(doc.current_step===s.step&&doc.status==="pending"){cls="current";ico=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="spin"><circle cx="12" cy="12" r="10" stroke-dasharray="10 20"/></svg>`;}return`<div class="appr-item"><div class="appr-dot ${cls}">${ico}</div><div style="flex:1;"><div class="appr-role">${s.label}${cls==="current"?` <span style="font-size:10px;color:var(--ios-blue);font-weight:800;letter-spacing:0.5px;">(ОЖИДАЕТ)</span>`:""}</div>${who?`<div class="appr-who">${who}</div>`:""}${tm?`<div class="appr-time">${tm}</div>`:""}${cmt?`<div class="appr-cmt">${cmt}</div>`:""}${sig}</div></div>`;}).join("");
+  document.getElementById("dd-comments").innerHTML=comments.map((c,i)=>`<div class="comment-item"><div class="comment-ava" style="background:${CLR[i%CLR.length]}">${(c.user_name||"?")[0].toUpperCase()}</div><div class="comment-bub"><div class="comment-who"><span>${c.user_name||"Система"}</span><span style="color:var(--text3)">${fmt(c.created_at)}</span></div><div class="comment-txt">${c.text}</div></div></div>`).join("")||'<div style="font-size:12px;color:var(--text3);padding:5px 0">Нет комментариев</div>';
+  document.getElementById("dd-info").innerHTML=`<div class="info-row"><span class="info-key">Номер</span><span class="info-val" style="font-family:monospace">${doc.doc_number}</span></div><div class="info-row"><span class="info-key">Тип</span><span class="info-val">${DT[doc.doc_type]||doc.doc_type}</span></div><div class="info-row"><span class="info-key">Создал</span><span class="info-val">${doc.created_by_name}</span></div><div class="info-row"><span class="info-key">Дата</span><span class="info-val">${fmtD(doc.created_at)}</span></div>${doc.deadline?`<div class="info-row"><span class="info-key">Дедлайн</span><span class="info-val" style="color:#FF9500">${fmtD(doc.deadline)}</span></div>`:""}`;
+  renderBanner(doc,chain);renderActions(doc,chain);
+}
+function renderBanner(doc,chain){
+  const el=document.getElementById("role-banner");
+  const canAppr=doc.status==="pending"&&(ME.role===doc.current_role||ME.role==="superadmin");
+  const isMine=doc.created_by_name===ME.name;
+  const currStep = chain.find(x=>x.role===doc.current_role) || {};
+  
+  if(canAppr){
+    el.style.display="flex"; el.className="role-banner rb-warn";
+    el.innerHTML=`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <div style="display:flex; flex-direction:column; gap:2px;">
+                    <span style="font-size:15px;">Документ ждёт вашего решения</span>
+                    <span style="font-size:12px; opacity:0.8;">Вы согласуете как: <b>${currStep.label||ME.role}</b></span>
+                  </div>`;
+  }
+  else if(isMine && doc.status==="pending"){
+    el.style.display="flex"; el.className="role-banner rb-info";
+    el.innerHTML=`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <div style="display:flex; flex-direction:column; gap:2px;">
+                    <span style="font-size:15px;">Заявка на рассмотрении</span>
+                    <span style="font-size:12px; opacity:0.8;">Сейчас у: <b>${currStep.label||doc.current_role}</b></span>
+                  </div>`;
+  }
+  else if(doc.status==="approved" && ME.role==="accountant"){
+    el.style.display="flex"; el.className="role-banner rb-ok";
+    el.innerHTML=`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>Полностью согласован — распечатайте и закройте документ</span>`;
+  }
+  else if(doc.status==="rejected" && isMine){
+    el.style.display="flex"; el.className="role-banner rb-tip";
+    el.style.background="rgba(255,59,48,0.1)"; el.style.borderColor="rgba(255,59,48,0.2)"; el.style.color="#FF3B30";
+    el.innerHTML=`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                  <span>Документ отклонен — ознакомьтесь с комментариями и создайте новый</span>`;
+  }
+  else el.style.display="none";
+}
+function renderActions(doc,chain){
+  const el=document.getElementById("dd-act");
+  const canAppr=doc.status==="pending"&&(ME.role===doc.current_role||ME.role==="superadmin");
+  const currStep = chain.find(x=>x.role===doc.current_role) || {};
+  let h="";
+  if(canAppr){
+    h+=`<button class="btn-approve" onclick="openAppr('approved','${doc.doc_number}')" style="box-shadow:0 8px 20px rgba(52,199,89,0.3);">✅ Согласовать</button>
+        <button class="btn-reject" onclick="openAppr('rejected','${doc.doc_number}')">❌ Отклонить</button>`;
+  }
+  if(doc.status==="approved" && (ME.role==="accountant"||ME.role==="superadmin")){
+    h+=`<button class="btn-print-close" onclick="printClose(${doc.id})" style="box-shadow:0 8px 20px rgba(99,102,241,0.3);">🖨️ Распечатать и закрыть</button>`;
+  }
+  if(!h){
+    if(doc.status==="pending") h=`<div style="display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; color:var(--text3);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Ожидает подписи: <span style="color:var(--ios-blue)">${currStep.label||doc.current_role}</span></div>`;
+    else if(doc.status==="approved") h=`<span style="font-size:14px; font-weight:800; color:#34C759;">✅ ДОКУМЕНТ УТВЕРЖДЁН</span>`;
+    else if(doc.status==="rejected") h=`<span style="font-size:14px; font-weight:800; color:#FF3B30;">❌ ДОКУМЕНТ ОТКЛОНЁН</span>`;
+    else if(doc.status==="printed") h=`<span style="font-size:14px; font-weight:800; color:var(--ios-blue);">🖨️ ДОКУМЕНТ ЗАКРЫТ (РАСПЕЧАТАН)</span>`;
+  }
+  el.innerHTML=h;
+}
+function closeDetail(){curId=null;document.getElementById("doc-detail").classList.remove("show");document.getElementById("doc-empty").style.display="flex";document.querySelectorAll(".doc-item").forEach(e=>e.classList.remove("active"));}
+
+function openNewDoc(){updChain();document.getElementById("nd-t").value="";document.getElementById("nd-d").value="";document.getElementById("m-new").classList.add("open");}
+function updChain(){const t=document.getElementById("nd-type").value,c=CHAIN[t]||[];document.getElementById("nd-chain").innerHTML=c.map((s,i)=>`<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:3px 8px;background:var(--surface);border-radius:980px;"><span style="font-weight:700;color:var(--ios-blue)">${i+1}</span>${s.label}</span>${i<c.length-1?'<span style="color:var(--text3)">→</span>':""}`).join(" ");}
+async function submitDoc(){const title=document.getElementById("nd-t").value.trim();if(!title){toast("Укажите название","err");return;}const r=await fetch("/api/documents",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({doc_type:document.getElementById("nd-type").value,title,description:document.getElementById("nd-d").value.trim(),priority:document.getElementById("nd-p").value,deadline:document.getElementById("nd-dl").value||null})});const d=await r.json();if(d.ok){toast(`${d.doc_number} отправлен ✓`,"ok");closeM("m-new");document.getElementById("nd-t").value="";document.getElementById("nd-d").value="";await loadDocs();await loadStats();openDoc(d.doc_id);}else toast(d.error||"Ошибка","err");}
+
+function openAppr(act,num){
+  curAct=act;
+  document.getElementById("am-t").textContent=act==="approved"?"Согласовать":"Отклонить";
+  document.getElementById("am-s").textContent=num;
+  document.getElementById("am-c").value="";
+  const b=document.getElementById("am-btn");
+  b.textContent=act==="approved"?"✅ Согласовать":"❌ Отклонить";
+  b.style.background=act==="approved"?"#34C759":"#FF3B30";
+  
+  const ss = document.getElementById("sig-section");
+  if(act === "approved") { ss.style.display="block"; setTimeout(initSigPad, 100); }
+  else { ss.style.display="none"; }
+  
+  document.getElementById("m-appr").classList.add("open");
+}
+async function doApprove(){
+  const c=document.getElementById("am-c").value.trim();
+  let sig = null;
+  if(curAct === "approved") {
+    // Basic check if canvas is empty (optional but good)
+    sig = sigPad.toDataURL('image/png');
+  }
+  
+  const r=await fetch(`/api/documents/${curId}/approve`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({action:curAct, comment:c, signature: sig})
+  });
+  const d=await r.json();
+  if(d.ok){
+    toast(curAct==="approved"?"Согласовано ✓":"Отклонено","ok");
+    closeM("m-appr");
+    await loadDocs();
+    await loadStats();
+    openDoc(curId);
+  } else toast(d.error||"Ошибка","err");
+}
+async function printClose(id){if(!confirm("Пометить как распечатано и закрыть?"))return;const r=await fetch(`/api/documents/${id}/print`,{method:"POST"});const d=await r.json();if(d.ok){toast("Закрыт 🖨️","ok");await loadDocs();await loadStats();openDoc(id);}else toast(d.error||"Ошибка","err");}
+async function sendComment(){const t=document.getElementById("ci").value.trim();if(!t||!curId)return;const r=await fetch(`/api/documents/${curId}/comments`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:t})});if((await r.json()).ok){document.getElementById("ci").value="";openDoc(curId);}}
+function closeM(id){document.getElementById(id)?.classList.remove("open");}
+document.querySelectorAll(".overlay").forEach(ov=>ov.addEventListener("click",e=>{if(e.target===ov)closeM(ov.id);}));
+function toast(msg,type="ok"){const t=document.getElementById("toast");t.textContent=msg;t.className="toast show"+(type==="err"?" toast-err":"");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2800);}
+if(window.innerWidth<=768)document.getElementById("mob-sb-btn").style.display="block";
+updChain();loadDocs();loadStats();
+</script>
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Tracko — Передача техники</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#f2f2f7;--surface:#fff;--surface2:#f2f2f7;--border:rgba(0,0,0,0.05);--border2:rgba(0,0,0,0.12);--text:#1c1c1e;--text2:#6c6c70;--text3:#aeaeb2;--accent:#4361EE;--green:#34c759;--amber:#ff9f0a;--red:#ff3b30;--r:20px;--sans:'Inter',system-ui,sans-serif;}
+@media(prefers-color-scheme:dark){:root{--bg:#000;--surface:#1c1c1e;--surface2:#2c2c2e;--border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.15);--text:#f5f5f7;--text2:#98989d;--text3:#48484a;}}
+html{-webkit-font-smoothing:antialiased;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;padding-bottom:120px;}
+.header{background:rgba(255,255,255,0.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:24px 20px;border-bottom:.5px solid var(--border);position:sticky;top:0;z-index:1000;}
+@media(prefers-color-scheme:dark){.header{background:rgba(28,28,30,0.8);}}
+.header-logo{width:48px;height:48px;background:linear-gradient(135deg,#4361EE,#7B2FBE);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 24px rgba(67,97,238,.3);}
+.header-logo svg{width:24px;height:24px;fill:#fff;}
+.header-title{font-size:20px;font-weight:800;letter-spacing:-0.5px;}
+.header-sub{font-size:13px;color:var(--text2);margin-top:4px;font-weight:500;}
+.status-bar{display:flex;align-items:center;gap:12px;padding:16px 20px;background:rgba(255,159,10,0.1);color:#ff9f0a;border-bottom:1px solid rgba(255,159,10,0.1);}
+.status-bar.done{background:rgba(52,199,89,0.1);color:#34c759;border-bottom:1px solid rgba(52,199,89,0.1);}
+.status-ico{font-size:22px;}
+.status-text{font-size:15px;font-weight:700;}
+.status-sub{font-size:12px;opacity:0.8;margin-top:1px;}
+.content{max-width:500px;margin:0 auto;padding:24px 20px;}
+.section{margin-bottom:32px;}
+.section-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;padding:0 8px;}
+.item-card{background:var(--surface);border-radius:var(--r);padding:20px;margin-bottom:16px;box-shadow:0 4px 24px rgba(0,0,0,.04);border:1px solid var(--border);transition:all 0.3s cubic-bezier(.4,0,.2,1);}
+.item-card.has-photo{border-color:var(--green);background:linear-gradient(180deg,var(--surface),rgba(52,199,89,0.02));}
+.photo-area{border:2px dashed var(--border2);border-radius:16px;overflow:hidden;position:relative;cursor:pointer;transition:all .2s;background:var(--bg);}
+.photo-area:hover{border-color:var(--accent);transform:scale(0.99);}
+.photo-area.has-photo{border-style:solid;border-color:var(--green);}
+.photo-placeholder{height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
+.photo-preview{height:220px;position:relative;}
+.btn-submit{width:100%;padding:20px;background:linear-gradient(135deg,#4361EE,#7B2FBE);color:#fff;font-size:17px;font-weight:700;border:none;border-radius:20px;cursor:pointer;box-shadow:0 12px 36px rgba(67,97,238,0.3);transition:all .3s cubic-bezier(.34,1.56,.64,1);display:flex;align-items:center;justify-content:center;gap:12px;letter-spacing:-0.2px;}
+.btn-submit:hover{transform:translateY(-2px);box-shadow:0 15px 40px rgba(67,97,238,0.4);filter:brightness(1.08);}
+.btn-submit:active{transform:scale(.97);}
+.btn-submit:disabled{opacity:.4;filter:grayscale(1);transform:none;box-shadow:none;}
+.sig-box{background:var(--surface);border-radius:20px;padding:20px;margin-top:24px;border:1px solid var(--border);box-shadow:0 4px 24px rgba(0,0,0,.04);}
+#sig-pad{width:100%;height:160px;background:var(--bg);border-radius:12px;border:1px solid var(--border2);touch-action:none;cursor:crosshair;}
+.summary-card{background:linear-gradient(135deg,rgba(67,97,238,0.08),rgba(123,47,190,0.08));border:1px solid rgba(67,97,238,0.2);border-radius:20px;padding:24px;margin-bottom:24px;display:none;animation:fadeIn 0.5s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.glass-card{background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.2);box-shadow:0 8px 32px rgba(0,0,0,0.05);}
+@media(prefers-color-scheme:dark){.glass-card{background:rgba(28,28,30,0.7);border:1px solid rgba(255,255,255,0.05);}}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:12px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,#4361EE,#7B2FBE);border-radius:2px;transition:width .4s ease;}
+.progress-txt{font-size:12px;color:var(--text2);text-align:right;margin-top:6px;}
+.done-screen{text-align:center;padding:60px 20px;}
+.done-ico{font-size:64px;margin-bottom:20px;}
+.done-title{font-size:22px;font-weight:700;margin-bottom:10px;}
+.done-sub{font-size:14px;color:var(--text2);line-height:1.6;}
+.already-done{background:#fff;border-radius:var(--r);padding:20px;text-align:center;margin:20px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+</style>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#007AFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Tracko">
+</head>
+<body>
+
+{% if dis.status == 'completed' %}
+<div class="header">
+  <div class="header-logo"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+  <div class="header-title">Tracko</div>
+</div>
+<div class="done-screen">
+  <div class="done-ico">✅</div>
+  <div class="done-title">Передача завершена</div>
+  <div class="done-sub">Вся техника принята и подтверждена.<br>Спасибо за сотрудничество!</div>
+</div>
+{% elif dis.status == 'photos_submitted' %}
+<div class="header">
+  <div class="header-logo"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+  <div class="header-title">Tracko</div>
+</div>
+<div class="done-screen">
+  <div class="done-ico">⏳</div>
+  <div class="done-title">Отчёт отправлен</div>
+  <div class="done-sub">Ваши фотографии получены и проверяются.<br>Ожидайте подтверждения от администратора.</div>
+</div>
+{% else %}
+
+<div class="header">
+  <div class="header-logo"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+  <div class="header-title">Передача техники</div>
+  <div class="header-sub">Сфотографируйте каждую единицу технику на своём месте</div>
+</div>
+
+<div class="status-bar" id="status-bar">
+  <div class="status-ico">📋</div>
+  <div>
+    <div class="status-text">Требуется фото-отчёт</div>
+    <div class="status-sub">{{ dis.items|length }} единиц техники к передаче</div>
+  </div>
+</div>
+
+<div class="content">
+  <div class="section">
+    <div class="section-title">Сотрудник</div>
+    <div class="emp-card">
+      <div class="emp-ava">{{ dis.employee_name[:1].upper() }}</div>
+      <div>
+        <div class="emp-name">{{ dis.employee_name }}</div>
+        <div class="emp-email">{{ dis.employee_email or '' }}</div>
+      </div>
+    </div>
+  </div>
+
+  {% if dis.items %}
+  <div class="section" id="items-section">
+    <div class="section-title">Техника к передаче</div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="progress-txt" id="prog-txt">0 из {{ dis.items|length }} сфотографировано</div>
+    <br>
+    {% for item in dis.items %}
+    <div class="item-card glass-card no-photo" id="card-{{ item.id }}">
+      <div class="photo-badge" id="badge-{{ item.id }}" style="display:none;">✓</div>
+      <div class="item-head">
+        <div class="cat-ico" style="background:var(--bg);">{{ {'Ноутбук':'💻','Монитор':'🖥','Кресло':'🪑','Стол':'🪵','Клавиатура':'⌨️','Мышь':'🖱','Принтер':'🖨','Телефон':'📱'}.get(item.category,'📦') }}</div>
+        <div>
+          <div class="item-inv">{{ item.inv_num }}</div>
+          <div class="item-name">{{ item.model or item.category }}</div>
+          <div class="item-room">{{ item.room }}</div>
+        </div>
+      </div>
+      <div class="photo-area" id="area-{{ item.id }}" onclick="document.getElementById('file-{{ item.id }}').click()">
+        <div class="photo-placeholder" id="placeholder-{{ item.id }}">
+          <svg class="photo-placeholder-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <div class="photo-placeholder-txt">Нажмите, чтобы сфотографировать</div>
+          <input type="file" id="file-{{ item.id }}" accept="image/*" capture="environment" data-item="{{ item.id }}" onchange="handlePhoto(this)">
+        </div>
+        <div class="photo-preview" id="preview-{{ item.id }}" style="display:none;">
+          <img id="img-{{ item.id }}" src="">
+          <button class="photo-remove" onclick="event.stopPropagation();removePhoto('{{ item.id }}')">✕</button>
+        </div>
+      </div>
+      <select class="cond-select" id="cond-{{ item.id }}" onchange="onCondChange(this,'{{ item.id }}')">
+        <option value="Хорошее">✓ Хорошее — в порядке</option>
+        <option value="Потёрто">⚠ Потёрто — есть царапины</option>
+        <option value="Требует ремонта">🔧 Требует ремонта</option>
+              <option value="Утеряно">❌ Утеряно — предмет потерян</option>
+      </select>
+      <div class="check-row">
+        <input type="checkbox" id="conf-{{ item.id }}" onchange="updateProgress()">
+        <label for="conf-{{ item.id }}">Техника на месте и готова к сдаче</label>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section" id="comment-section">
+    <div class="section-title">Комментарий (необязательно)</div>
+    <div class="comment-area glass-card">
+      <textarea id="comment" placeholder="Дополнительные пояснения..."></textarea>
+    </div>
+  </div>
+
+  <div class="summary-card" id="summary-card">
+    <div style="font-size:18px;font-weight:800;color:var(--accent);margin-bottom:8px;">Готово к отправке!</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.4;">Все предметы сфотографированы и проверены. Пожалуйста, распишитесь ниже для подтверждения передачи.</div>
+  </div>
+
+  <div class="section" id="sig-section" style="display:none;">
+    <div class="section-title">Ваша подпись</div>
+    <div class="sig-box">
+      <canvas id="sig-pad"></canvas>
+      <div style="display:flex;justify-content:center;margin-top:12px;">
+        <button class="btn-ghost" style="font-size:11px;padding:4px 12px;" onclick="clearSig()">Очистить подпись</button>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="section">
+    <div class="emp-card" style="justify-content:center;text-align:center;padding:30px;flex-direction:column;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.5" style="margin-bottom:10px;"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      <div style="font-size:14px;color:var(--text2);">Закреплённой техники нет</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px;">Нажмите кнопку ниже для подтверждения</div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="submit-wrap">
+  <button class="btn-submit" id="btn-sub" onclick="submitReport()" {% if not dis.items %}{% endif %}>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+    Отправить фото-отчёт
+  </button>
+</div>
+
+{% endif %}
+
+<script>
+const DIS_ID = {{ dis.id }};
+const TOTAL = {{ dis.items|length }};
+const DIS_ID = {{ dis.id }};
+const TOTAL = {{ dis.items|length }};
+const photoFiles = {};
+let sigPad = null;
+
+function initSig() {
+  const canvas = document.getElementById('sig-pad');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const resize = () => {
+    const r = canvas.getBoundingClientRect();
+    canvas.width = r.width; canvas.height = r.height;
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--text').trim();
+    ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  };
+  resize(); window.addEventListener('resize', resize);
+  let drawing = false;
+  const getPos = e => {
+    const r = canvas.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
+    return [x, y];
+  };
+  canvas.onmousedown = e => { drawing=true; const [x,y]=getPos(e); ctx.beginPath(); ctx.moveTo(x,y); e.preventDefault(); };
+  canvas.onmousemove = e => { if(!drawing) return; const [x,y]=getPos(e); ctx.lineTo(x,y); ctx.stroke(); e.preventDefault(); };
+  window.onmouseup = () => { drawing=false; };
+  canvas.ontouchstart = e => { drawing=true; const [x,y]=getPos(e); ctx.beginPath(); ctx.moveTo(x,y); e.preventDefault(); };
+  canvas.ontouchmove = e => { if(!drawing) return; const [x,y]=getPos(e); ctx.lineTo(x,y); ctx.stroke(); e.preventDefault(); };
+  canvas.ontouchend = () => { drawing=false; };
+  sigPad = { canvas, ctx, clear: () => ctx.clearRect(0,0,canvas.width,canvas.height) };
+}
+
+function clearSig() { sigPad?.clear(); }
+
+function handlePhoto(input) {
+  const id = input.dataset.item;
+  const file = input.files[0];
+  if (!file) return;
+  photoFiles[id] = file;
+  const url = URL.createObjectURL(file);
+  document.getElementById('img-' + id).src = url;
+  document.getElementById('placeholder-' + id).style.display = 'none';
+  document.getElementById('preview-' + id).style.display = 'block';
+  document.getElementById('area-' + id).classList.add('has-photo');
+  document.getElementById('card-' + id).classList.remove('no-photo');
+  document.getElementById('card-' + id).classList.add('has-photo');
+  document.getElementById('badge-' + id).style.display = 'flex';
+  updateProgress();
+}
+
+function removePhoto(id) {
+  delete photoFiles[id];
+  document.getElementById('file-' + id).value = '';
+  document.getElementById('placeholder-' + id).style.display = 'flex';
+  document.getElementById('preview-' + id).style.display = 'none';
+  document.getElementById('area-' + id).classList.remove('has-photo');
+  document.getElementById('card-' + id).classList.remove('has-photo');
+  document.getElementById('card-' + id).classList.add('no-photo');
+  document.getElementById('badge-' + id).style.display = 'none';
+  updateProgress();
+}
+
+function updateProgress() {
+  const photoCount = Object.keys(photoFiles).length;
+  const confirmed = document.querySelectorAll('input[id^="conf-"]:checked').length;
+  const pct = TOTAL > 0 ? Math.round(photoCount / TOTAL * 100) : 100;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-txt').textContent = `${photoCount} из ${TOTAL} сфотографировано`;
+  
+  if(photoCount >= TOTAL && confirmed >= TOTAL) {
+    document.getElementById('summary-card').style.display = 'block';
+    document.getElementById('sig-section').style.display = 'block';
+    if(!sigPad) initSig();
+  }
+}
+
+async function submitReport() {
+  const btn = document.getElementById('btn-sub');
+  const confirmed = document.querySelectorAll('input[id^="conf-"]:checked');
+  
+  if (TOTAL > 0 && (confirmed.length < TOTAL || Object.keys(photoFiles).length < TOTAL)) {
+    alert(`Пожалуйста, сфотографируйте и подтвердите все предметы.`);
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.innerHTML = `Отправка...`;
+  
+  const fd = new FormData();
+  const conditions = {};
+  document.querySelectorAll('[id^="cond-"]').forEach(sel => {
+    conditions[sel.id.replace('cond-','')] = sel.value;
+  });
+  
+  fd.append('conditions', JSON.stringify(conditions));
+  fd.append('comment', document.getElementById('comment')?.value || '');
+  fd.append('signature', sigPad?.canvas.toDataURL() || '');
+  
+  for (const [id, file] of Object.entries(photoFiles)) {
+    fd.append('photo_' + id, file);
+  }
+  
+  try {
+    const r = await fetch(`/api/dismissals/${DIS_ID}/submit`, {method:'POST', body: fd});
+    const j = await r.json();
+    if (j.ok) {
+      document.body.innerHTML = `
+        <div style="text-align:center;padding:100px 40px;animation:fadeIn 0.8s ease;">
+          <div style="font-size:80px;margin-bottom:24px;">✨</div>
+          <div style="font-size:26px;font-weight:800;margin-bottom:12px;letter-spacing:-0.5px;">Обходной лист отправлен</div>
+          <div style="font-size:15px;color:#6c6c70;line-height:1.6;">Ваш отчет и подпись успешно получены.<br>Администратор проверит данные в ближайшее время.</div>
+        </div>`;
+    } else {
+      alert(j.error || 'Ошибка');
+      btn.disabled = false;
+      btn.innerHTML = 'Отправить фото-отчёт';
+    }
+  } catch(e) {
+    alert('Ошибка сети');
+    btn.disabled = false;
+    btn.innerHTML = 'Отправить фото-отчёт';
+  }
+}
+
+updateProgress();
+
+    function onCondChange(sel, itemId) {
+      var card = document.getElementById('ic-' + itemId) || sel.closest('.item-card');
+      if (card) {
+        card.style.borderColor = sel.value === 'Утеряно' ? '#ff3b30' : '';
+        card.style.background  = sel.value === 'Утеряно' ? 'rgba(255,59,48,.03)' : '';
+      }
+    }
+</script>
+</body>
+</html>

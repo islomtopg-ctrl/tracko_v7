@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Настройки — Tracko</title>
+  <link rel="stylesheet" href="/static/css/tracko-ios.css">
+  <style>
+    .settings-wrap { max-width: 680px; margin: 0 auto; padding: 24px 20px 100px; }
+    .settings-section {
+      background: var(--surface); border-radius: var(--r-lg);
+      border: .5px solid var(--separator2); overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .settings-section-head {
+      padding: 14px 20px 10px;
+      border-bottom: .5px solid var(--separator2);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .settings-section-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .settings-section-title { font-size: 15px; font-weight: 700; }
+    .settings-section-sub   { font-size: 12px; color: var(--text2); margin-top: 1px; }
+    .settings-row {
+      padding: 14px 20px;
+      border-bottom: .5px solid var(--separator2);
+      display: flex; align-items: center; gap: 14px;
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row-info { flex: 1; min-width: 0; }
+    .settings-row-label { font-size: 14px; font-weight: 500; }
+    .settings-row-desc  { font-size: 12px; color: var(--text2); margin-top: 2px; }
+    .settings-row-ctrl  { flex-shrink: 0; }
+
+    .toggle {
+      width: 44px; height: 26px; border-radius: 13px;
+      background: var(--separator2); border: none; cursor: pointer;
+      position: relative; transition: background .2s;
+    }
+    .toggle.on { background: var(--ios-blue); }
+    .toggle::after {
+      content: ''; position: absolute; top: 3px; left: 3px;
+      width: 20px; height: 20px; border-radius: 50%; background: #fff;
+      transition: left .2s;
+    }
+    .toggle.on::after { left: 21px; }
+
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+      margin-right: 5px;
+    }
+    .dot-green { background: #34C759; }
+    .dot-gray  { background: var(--text3); }
+
+    .input-row { display: flex; gap: 8px; margin-top: 10px; }
+    .input-row input {
+      flex: 1; background: var(--surface2); border: none;
+      border-radius: 10px; padding: 10px 13px; color: var(--text);
+      font-size: 14px; font-family: var(--sans); outline: none;
+    }
+    .input-row input:focus { box-shadow: 0 0 0 3px rgba(0,122,255,.18); }
+
+    .code-box {
+      background: var(--surface2); border-radius: 10px; padding: 12px;
+      font-family: ui-monospace, monospace; font-size: 13px; word-break: break-all;
+      margin-top: 10px; color: var(--accent); letter-spacing: .03em;
+    }
+    .qr-setup img { border-radius: 12px; margin: 12px 0; max-width: 180px; display: block; }
+
+    .role-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 980px; font-size: 13px; font-weight: 600;
+    }
+    .role-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    .api-key-row {
+      display: flex; align-items: center; gap: 10px; padding: 10px 0;
+      border-bottom: .5px solid var(--separator2);
+    }
+    .api-key-row:last-child { border-bottom: none; }
+    .api-key-name { font-size: 13px; font-weight: 600; flex: 1; }
+    .api-key-scope { font-size: 11px; color: var(--text2); }
+    .api-key-date  { font-size: 11px; color: var(--text3); }
+  </style>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#007AFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Tracko">
+</head>
+<body>
+<nav class="ios-nav">
+  <a href="/dashboard" class="nav-back">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Главная
+  </a>
+  <span class="nav-title">Настройки</span>
+</nav>
+
+<div class="settings-wrap" style="margin-top:60px;">
+
+  <!-- Profile -->
+  <div class="settings-section">
+    <div class="settings-section-head">
+      <div class="settings-section-icon" style="background:rgba(0,122,255,.1);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ios-blue)" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div>
+        <div class="settings-section-title">Профиль</div>
+        <div class="settings-section-sub">Информация аккаунта</div>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-info">
+        <div class="settings-row-label">{{ current_user.name }}</div>
+        <div class="settings-row-desc">{{ current_user.email }}</div>
+      </div>
+      <span class="role-badge" style="background:rgba({{ {'superadmin':'88,86,214','aho':'0,122,255','director':'255,59,48','deputy':'255,149,0','accountant':'48,176,199','employee':'142,142,147','auditor':'90,200,250','viewer':'90,200,250','hr':'52,199,89'}.get(current_user.role,'142,142,147') }},.12);color:#{{ role_info.get('color','8E8E93') }};">
+        <span class="role-dot" style="background:#{{ role_info.get('color','8E8E93') }};"></span>
+        {{ role_info.get('label','—') }}
+      </span>
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-info">
+        <div class="settings-row-label">Смена пароля</div>
+        <div class="settings-row-desc">Минимум 8 символов, буквы + цифры</div>
+      </div>
+      <div class="settings-row-ctrl">
+        <button class="btn btn-secondary btn-sm" onclick="togglePwForm()">Изменить</button>
+      </div>
+    </div>
+    <div id="pw-form" style="display:none;padding:0 20px 16px;">
+      <div style="display:grid;gap:8px;margin-top:10px;">
+        <input type="password" id="pw-old" placeholder="Текущий пароль"
+          style="background:var(--surface2);border:none;border-radius:10px;padding:10px 13px;color:var(--text);font-size:14px;font-family:var(--sans);outline:none;">
+        <input type="password" id="pw-new" placeholder="Новый пароль (8+ символов, буквы+цифры)"
+          style="background:var(--surface2);border:none;border-radius:10px;padding:10px 13px;color:var(--text);font-size:14px;font-family:var(--sans);outline:none;">
+        <input type="password" id="pw-confirm" placeholder="Повторите новый пароль"
+          style="background:var(--surface2);border:none;border-radius:10px;padding:10px 13px;color:var(--text);font-size:14px;font-family:var(--sans);outline:none;">
+        <button class="btn btn-primary" onclick="changePw()">Сохранить пароль</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Telegram -->
+  <div class="settings-section">
+    <div class="settings-section-head">
+      <div class="settings-section-icon" style="background:rgba(0,136,204,.12);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0088CC" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <div>
+        <div class="settings-section-title">Telegram-уведомления</div>
+        <div class="settings-section-sub">Получайте уведомления о документах в Telegram</div>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-info">
+        <div class="settings-row-label">
+          <span class="status-dot {{ 'dot-green' if telegram_connected else 'dot-gray' }}"></span>
+          {{ 'Подключено' if telegram_connected else 'Не подключено' }}
+        </div>
+        <div class="settings-row-desc">
+          {% if telegram_connected %}
+          Уведомления о новых документах на согласование будут приходить в Telegram
+          {% else %}
+          Узнайте свой chat_id через @userinfobot в Telegram
+          {% endif %}
+        </div>
+      </div>
+      {% if telegram_connected %}
+      <button class="btn btn-destructive btn-sm" onclick="disconnectTelegram()">Отключить</button>
+      {% endif %}
+    </div>
+    {% if not telegram_connected %}
+    <div style="padding:0 20px 16px;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">
+        1. Откройте <b>@userinfobot</b> в Telegram<br>
+        2. Отправьте /start — бот покажет ваш chat_id<br>
+        3. Вставьте chat_id ниже
+      </div>
+      <div class="input-row">
+        <input type="number" id="tg-chat-id" placeholder="Ваш Telegram chat_id (число)">
+        <button class="btn btn-primary btn-sm" onclick="connectTelegram()">Подключить</button>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- 2FA -->
+  {% if current_user.role in ('superadmin','director','accountant','deputy','aho') %}
+  <div class="settings-section">
+    <div class="settings-section-head">
+      <div class="settings-section-icon" style="background:rgba(52,199,89,.12);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div>
+        <div class="settings-section-title">Двухфакторная аутентификация (2FA)</div>
+        <div class="settings-section-sub">Дополнительная защита для администраторов</div>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-info">
+        <div class="settings-row-label">
+          <span class="status-dot {{ 'dot-green' if totp_enabled else 'dot-gray' }}"></span>
+          {{ '2FA включена' if totp_enabled else '2FA выключена' }}
+        </div>
+        <div class="settings-row-desc">{{ 'Вход защищён кодом из Google Authenticator' if totp_enabled else 'Включите для защиты аккаунта' }}</div>
+      </div>
+      <div class="settings-row-ctrl">
+        {% if not totp_enabled %}
+        <button class="btn btn-primary btn-sm" onclick="setup2FA()">Включить</button>
+        {% else %}
+        <button class="btn btn-destructive btn-sm" onclick="show2FADisable()">Отключить</button>
+        {% endif %}
+      </div>
+    </div>
+    <div id="totp-setup" style="display:none;padding:0 20px 16px;">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">
+        1. Установите <b>Google Authenticator</b> или <b>Яндекс.Ключ</b><br>
+        2. Отсканируйте QR-код ниже<br>
+        3. Введите 6-значный код для подтверждения
+      </div>
+      <div id="totp-qr" class="qr-setup"></div>
+      <div id="totp-secret-display" class="code-box" style="display:none;"></div>
+      <div class="input-row">
+        <input type="text" id="totp-code" placeholder="6-значный код" maxlength="6" pattern="[0-9]*" inputmode="numeric">
+        <button class="btn btn-primary btn-sm" onclick="confirm2FA()">Подтвердить</button>
+      </div>
+    </div>
+    <div id="totp-disable" style="display:none;padding:0 20px 16px;">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">
+        Введите текущий код из приложения для отключения 2FA
+      </div>
+      <div class="input-row">
+        <input type="text" id="totp-disable-code" placeholder="6-значный код" maxlength="6">
+        <button class="btn btn-destructive btn-sm" onclick="disable2FA()">Отключить 2FA</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- API Keys (superadmin only) -->
+  {% if current_user.role == 'superadmin' %}
+  <div class="settings-section">
+    <div class="settings-section-head">
+      <div class="settings-section-icon" style="background:rgba(88,86,214,.12);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5856D6" stroke-width="2" stroke-linecap="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+      </div>
+      <div>
+        <div class="settings-section-title">API-ключи</div>
+        <div class="settings-section-sub">Для интеграций с 1С, Uzinfocom и другими системами</div>
+      </div>
+    </div>
+    <div style="padding:12px 20px 16px;">
+      <div id="api-keys-list" style="margin-bottom:12px;">
+        <div style="font-size:13px;color:var(--text3);">Загрузка…</div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="showNewKeyForm()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Создать ключ
+      </button>
+      <div id="new-key-form" style="display:none;margin-top:10px;">
+        <div style="display:grid;gap:8px;">
+          <input id="key-name" placeholder="Название (например: 1С Интеграция)"
+            style="background:var(--surface2);border:none;border-radius:10px;padding:10px 13px;color:var(--text);font-size:14px;font-family:var(--sans);outline:none;">
+          <select id="key-scopes"
+            style="background:var(--surface2);border:none;border-radius:10px;padding:10px 13px;color:var(--text);font-size:14px;font-family:var(--sans);">
+            <option value="read">Только чтение</option>
+            <option value="read,write">Чтение и запись</option>
+            <option value="read,write,delete">Полный доступ</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="createApiKey()">Создать</button>
+        </div>
+      </div>
+      <div id="new-key-result" style="display:none;" class="code-box"></div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type==='err'?' toast-err':'');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ── Password ──────────────────────────────────────────────────────────────
+function togglePwForm() {
+  const f = document.getElementById('pw-form');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+async function changePw() {
+  const oldPw = document.getElementById('pw-old').value;
+  const newPw = document.getElementById('pw-new').value;
+  const conf  = document.getElementById('pw-confirm').value;
+  if (newPw !== conf) { toast('Пароли не совпадают','err'); return; }
+  const r = await fetch('/api/profile', {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({old_password: oldPw, password: newPw})
+  });
+  const d = await r.json();
+  if (d.ok) {
+    toast('Пароль изменён ✓','ok');
+    document.getElementById('pw-form').style.display = 'none';
+    ['pw-old','pw-new','pw-confirm'].forEach(id=>document.getElementById(id).value='');
+  } else { toast(d.error||'Ошибка','err'); }
+}
+
+// ── Telegram ──────────────────────────────────────────────────────────────
+async function connectTelegram() {
+  const chatId = document.getElementById('tg-chat-id').value.trim();
+  if (!chatId) { toast('Введите chat_id','err'); return; }
+  const r = await fetch('/api/telegram/verify', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({chat_id: chatId})
+  });
+  const d = await r.json();
+  if (d.ok) { toast('Telegram подключён ✓','ok'); setTimeout(()=>location.reload(),1200); }
+  else { toast(d.error||'Ошибка','err'); }
+}
+async function disconnectTelegram() {
+  if (!confirm('Отключить Telegram-уведомления?')) return;
+  await fetch('/api/telegram/disconnect',{method:'POST'});
+  toast('Telegram отключён','ok');
+  setTimeout(()=>location.reload(),1000);
+}
+
+// ── 2FA ───────────────────────────────────────────────────────────────────
+async function setup2FA() {
+  const r = await fetch('/api/2fa/setup',{method:'POST'});
+  const d = await r.json();
+  if (!d.ok) { toast(d.error||'Ошибка','err'); return; }
+  const qrEl = document.getElementById('totp-qr');
+  qrEl.innerHTML = `<img src="${d.qr}" alt="QR для 2FA">
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Или введите ключ вручную:</div>
+    <div class="code-box">${d.secret}</div>`;
+  document.getElementById('totp-setup').style.display = 'block';
+}
+async function confirm2FA() {
+  const code = document.getElementById('totp-code').value.trim();
+  if (code.length !== 6) { toast('Введите 6-значный код','err'); return; }
+  const r = await fetch('/api/2fa/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
+  const d = await r.json();
+  if (d.ok) { toast('2FA включена ✓','ok'); setTimeout(()=>location.reload(),1200); }
+  else { toast(d.error||'Неверный код','err'); }
+}
+function show2FADisable() {
+  document.getElementById('totp-disable').style.display = 'block';
+}
+async function disable2FA() {
+  const code = document.getElementById('totp-disable-code').value.trim();
+  const r = await fetch('/api/2fa/disable',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
+  const d = await r.json();
+  if (d.ok) { toast('2FA отключена','ok'); setTimeout(()=>location.reload(),1000); }
+  else { toast(d.error||'Неверный код','err'); }
+}
+
+// ── API Keys ───────────────────────────────────────────────────────────────
+async function loadApiKeys() {
+  const el = document.getElementById('api-keys-list');
+  if (!el) return;
+  const keys = await (await fetch('/api/api-keys')).json();
+  if (!keys.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--text3);">Ключей нет</div>';
+    return;
+  }
+  el.innerHTML = keys.map(k => `
+    <div class="api-key-row">
+      <div>
+        <div class="api-key-name">${k.name}</div>
+        <div style="display:flex;gap:8px;margin-top:2px;">
+          <span class="api-key-scope">${k.scopes}</span>
+          <span class="api-key-date">создан ${new Date(k.created_at).toLocaleDateString('ru')}</span>
+          ${k.last_used?`<span class="api-key-date">· исп. ${new Date(k.last_used).toLocaleDateString('ru')}</span>`:''}
+        </div>
+      </div>
+      <button class="btn btn-destructive btn-xs" onclick="revokeKey(${k.id})">Удалить</button>
+    </div>
+  `).join('');
+}
+function showNewKeyForm() {
+  document.getElementById('new-key-form').style.display = 'block';
+}
+async function createApiKey() {
+  const name   = document.getElementById('key-name').value.trim();
+  const scopes = document.getElementById('key-scopes').value;
+  if (!name) { toast('Укажите название','err'); return; }
+  const r = await fetch('/api/api-keys',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,scopes})});
+  const d = await r.json();
+  if (d.ok) {
+    const res = document.getElementById('new-key-result');
+    res.style.display = 'block';
+    res.innerHTML = `<div style="font-size:11px;color:var(--text2);margin-bottom:4px;">⚠️ Сохраните ключ — показывается только раз!</div>${d.key}`;
+    document.getElementById('new-key-form').style.display = 'none';
+    loadApiKeys();
+  } else { toast(d.error||'Ошибка','err'); }
+}
+async function revokeKey(id) {
+  if (!confirm('Удалить API ключ?')) return;
+  await fetch('/api/api-keys/'+id,{method:'DELETE'});
+  toast('Ключ удалён','ok');
+  loadApiKeys();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+loadApiKeys();
+</script>
+</body>
+</html>

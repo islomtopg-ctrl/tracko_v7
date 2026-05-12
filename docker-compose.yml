@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./inventory.db:/app/inventory.db
+      - ./static/photos:/app/static/photos
+      - ./static/signatures:/app/static/signatures
+      - ./backup:/app/backup
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-CHANGE_ME_USE_RANDOM_64_CHAR_STRING_IN_PRODUCTION}
+      - SECURE_COOKIES=True
+      - MAX_UPLOAD_MB=16
+      - JWT_EXPIRY=43200
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

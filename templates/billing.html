@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Tracko — Подписка</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#007AFF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#f2f2f7;--surface:#fff;--surface2:#f2f2f7;--surface3:#e5e5ea;--border:rgba(0,0,0,.09);--border2:rgba(0,0,0,.15);--text:#1c1c1e;--text2:#6c6c70;--text3:#aeaeb2;--accent:#007AFF;--r:12px;--shadow:0 1px 3px rgba(0,0,0,.06);--sans:'Inter',system-ui,sans-serif;}
+[data-theme="dark"]{--bg:#000;--surface:#1c1c1e;--surface2:#2c2c2e;--text:#f5f5f7;--text2:#98989d;--text3:#48484a;--border:rgba(255,255,255,.08);}
+html{-webkit-font-smoothing:antialiased;}body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
+.nav{position:sticky;top:0;z-index:100;height:56px;background:rgba(242,242,247,.88);backdrop-filter:blur(20px);border-bottom:.5px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;}
+[data-theme="dark"] .nav{background:rgba(0,0,0,.8);}
+.back{color:var(--accent);text-decoration:none;font-size:14px;font-weight:500;display:flex;align-items:center;gap:4px;}.nav-title{font-size:16px;font-weight:600;}
+.content{max-width:760px;margin:0 auto;padding:32px 20px 60px;}
+.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px;}
+@media(max-width:600px){.plan-grid{grid-template-columns:1fr;}}
+.plan-card{background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:22px;text-align:center;transition:all .2s;position:relative;}
+.plan-card.best{border-color:var(--accent);box-shadow:0 0 0 4px rgba(0,122,255,.08);}
+.best-label{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:3px 12px;border-radius:980px;}
+.plan-name{font-size:15px;font-weight:700;margin-bottom:6px;}
+.plan-price{font-size:28px;font-weight:800;color:var(--accent);margin-bottom:10px;line-height:1;}
+.plan-limits{font-size:12px;color:var(--text2);line-height:2.2;}
+.sec-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:12px;margin-top:24px;}
+.card{background:var(--surface);border:.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:14px;}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:.5px solid var(--border);font-size:13px;}
+.info-row:last-child{border-bottom:none;}
+.info-k{color:var(--text2);}.info-v{font-weight:600;}
+.cta{background:linear-gradient(135deg,#007AFF,#5856D6);border-radius:16px;padding:24px;text-align:center;margin-top:20px;color:#fff;}
+.cta-title{font-size:18px;font-weight:700;margin-bottom:6px;}
+.cta-sub{font-size:13px;opacity:.8;margin-bottom:16px;}
+.cta-btn{display:inline-block;background:rgba(255,255,255,.2);color:#fff;border:1.5px solid rgba(255,255,255,.4);border-radius:10px;padding:10px 24px;font-size:14px;font-weight:600;text-decoration:none;transition:background .15s;}
+.cta-btn:hover{background:rgba(255,255,255,.3);}
+</style>
+</head>
+<body data-theme="{{ request.cookies.get('theme','') }}">
+<nav class="nav">
+  <a href="/" class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>Главная</a>
+  <span class="nav-title">Подписка и тарифы</span>
+</nav>
+<div class="content">
+  <div class="plan-grid">
+    {% for key, plan in plans.items() %}
+    <div class="plan-card {% if key == 'business' %}best{% endif %}">
+      {% if key == 'business' %}<div class="best-label">Популярный</div>{% endif %}
+      <div class="plan-name">{{ plan.label }}</div>
+      <div class="plan-price">{{ plan.price }}</div>
+      <div class="plan-limits">
+        {% if plan.max_items %}До {{ plan.max_items }} активов{% else %}∞ активов{% endif %}<br>
+        {% if plan.max_users %}До {{ plan.max_users }} пользователей{% else %}∞ пользователей{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="sec-hdr">Текущее использование</div>
+  <div class="card">
+    <div class="info-row"><span class="info-k">Текущий план</span><span class="info-v" id="cur-plan">—</span></div>
+    <div class="info-row"><span class="info-k">Активов в системе</span><span class="info-v" id="cur-items">—</span></div>
+    <div class="info-row"><span class="info-k">Пользователей</span><span class="info-v" id="cur-users">—</span></div>
+    <div class="info-row"><span class="info-k">Срок действия</span><span class="info-v" id="cur-exp" style="color:#34c759;">Бессрочно</span></div>
+  </div>
+
+  <div class="sec-hdr">Способы оплаты</div>
+  <div class="card">
+    <div class="info-row"><span class="info-k">Payme Business</span><span class="info-v">Оплата в UZS</span></div>
+    <div class="info-row"><span class="info-k">Счёт-фактура (B2B)</span><span class="info-v">Перевод на р/счёт</span></div>
+    <div class="info-row"><span class="info-k">Payoneer / Wise</span><span class="info-v">Международные клиенты</span></div>
+  </div>
+
+  <div class="cta">
+    <div class="cta-title">Обновить план или продлить подписку</div>
+    <div class="cta-sub">Свяжитесь с командой Tracko для выставления счёта</div>
+    <a href="https://t.me/tracko_support" target="_blank" class="cta-btn">📩 Написать в Telegram</a>
+  </div>
+</div>
+<script>
+const PLANS = {{ plans | tojson }};
+const SUB = {{ subscription | tojson }};
+const USED_ITEMS = {{ used_items }};
+const USED_USERS = {{ used_users }};
+document.getElementById("cur-plan").textContent = PLANS[SUB.plan]?.label || SUB.plan || "Стандарт";
+document.getElementById("cur-items").textContent = USED_ITEMS + (SUB.max_items ? " / " + SUB.max_items : " / ∞");
+document.getElementById("cur-users").textContent = USED_USERS + (SUB.max_users ? " / " + SUB.max_users : " / ∞");
+if (SUB.expires_at) {
+  const el = document.getElementById("cur-exp");
+  el.textContent = new Date(SUB.expires_at).toLocaleDateString("ru", {day:"2-digit",month:"long",year:"numeric"});
+  el.style.color = "#ff9f0a";
+}
+</script>
+</body>
+</html>
