@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Акт приёма-передачи #{{ iss.id }}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Arial',sans-serif;background:#fff;color:#000;padding:20mm 20mm 20mm 25mm;font-size:12pt;}
+@media print{body{padding:10mm 10mm 10mm 15mm;} .no-print{display:none!important;}}
+.header{text-align:center;margin-bottom:20px;}
+.header h1{font-size:15pt;font-weight:bold;text-transform:uppercase;letter-spacing:1px;}
+.header .act-num{font-size:10pt;color:#555;margin-top:4px;}
+.meta-table{width:100%;border-collapse:collapse;margin:16px 0;}
+.meta-table td{padding:7px 10px;border:1px solid #bbb;font-size:11pt;}
+.meta-table td:first-child{font-weight:bold;width:38%;background:#f5f5f5;}
+.section-title{font-size:11pt;font-weight:bold;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.5px;color:#444;}
+.items-table{width:100%;border-collapse:collapse;font-size:10pt;}
+.items-table th{background:#1E3A5F;color:#fff;padding:8px 10px;text-align:left;font-weight:bold;}
+.items-table td{padding:7px 10px;border-bottom:1px solid #ddd;vertical-align:middle;}
+.items-table tr:nth-child(even) td{background:#f9f9f9;}
+.num-col{width:36px;text-align:center;color:#888;}
+.sign-section{margin-top:36px;display:grid;grid-template-columns:1fr 1fr;gap:48px;}
+.sign-block .role{font-size:10pt;font-weight:bold;margin-bottom:4px;}
+.sign-block .name-line{font-size:10pt;color:#333;margin-bottom:24px;}
+.sign-block .sig-line{border-top:1px solid #555;font-size:9pt;color:#777;padding-top:5px;}
+.footer-note{margin-top:24px;font-size:9pt;color:#999;border-top:1px solid #eee;padding-top:10px;}
+.chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:bold;}
+.chip-ok{background:#d1fae5;color:#065f46;}
+.chip-warn{background:#fef3c7;color:#92400e;}
+.print-btn{position:fixed;bottom:24px;right:24px;padding:14px 28px;background:#007AFF;color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,122,255,.4);}
+</style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">Распечатать акт</button>
+
+<div class="header">
+  <h1>Акт приёма-передачи материальных ценностей</h1>
+  <div class="act-num">№ {{ iss.id }} от {{ iss.created_at[:10] if iss.created_at else '—' }}</div>
+</div>
+
+<table class="meta-table">
+  <tr><td>Получатель:</td><td><strong>{{ iss.employee_name }}</strong></td></tr>
+  {% if emp.department %}<tr><td>Подразделение:</td><td>{{ emp.department }}</td></tr>{% endif %}
+  {% if emp.email %}<tr><td>Email:</td><td>{{ emp.email }}</td></tr>{% endif %}
+  <tr><td>Передал:</td><td>{{ iss.issued_by_name }}</td></tr>
+  <tr><td>Дата выдачи:</td><td>{{ iss.created_at[:10] if iss.created_at else '—' }}</td></tr>
+  <tr><td>Статус:</td><td>
+    {% if iss.status == 'confirmed' %}
+      <span class="chip chip-ok">Подтверждено получателем</span>
+      {% if iss.confirmed_at %}· {{ iss.confirmed_at[:10] }}{% endif %}
+    {% else %}
+      <span class="chip chip-warn">Ожидает подтверждения</span>
+    {% endif %}
+  </td></tr>
+</table>
+
+<div class="section-title">Перечень передаваемого имущества</div>
+<table class="items-table">
+  <thead>
+    <tr>
+      <th class="num-col">№</th>
+      <th>Инв. №</th>
+      <th>Наименование</th>
+      <th>Модель</th>
+      <th>Серийный №</th>
+      <th>Кабинет</th>
+      <th>Состояние</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td class="num-col">{{ loop.index }}</td>
+      <td style="font-family:monospace;font-weight:bold;font-size:11px;">{{ item.inv_num }}</td>
+      <td>{{ item.category }}</td>
+      <td>{{ item.model or '—' }}</td>
+      <td style="font-family:monospace;font-size:10px;">{{ item.serial_num or '—' }}</td>
+      <td>{{ item.room }}</td>
+      <td>{{ item.condition }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div style="margin-top:8px;font-size:10pt;color:#555;">Итого: <strong>{{ items|length }}</strong> единиц(а)</div>
+
+<div class="sign-section" style="margin-top:40px;">
+  <div class="sign-block">
+    <div class="role">Передал:</div>
+    <div class="name-line">{{ iss.issued_by_name }}</div>
+    <div class="sig-line">подпись / дата</div>
+  </div>
+  <div class="sign-block">
+    <div class="role">Принял:</div>
+    <div class="name-line">{{ iss.employee_name }}</div>
+    <div class="sig-line">подпись / дата</div>
+  </div>
+</div>
+
+<div class="footer-note">
+  Документ сформирован в системе Tracko · {{ host }} · Выдача #{{ iss.id }}
+</div>
+</body>
+</html>

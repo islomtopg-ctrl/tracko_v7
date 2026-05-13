@@ -389,8 +389,8 @@ async function openDetail(id){
         ` : `<div style="font-size:13px;color:var(--text3);padding:12px;background:rgba(255,159,10,0.05);border-radius:12px;border:1px dashed rgba(255,159,10,0.2);">Сотрудник еще не отправил фото-отчет и подпись.</div>`}
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin:20px 0 10px;">Ссылка для сотрудника</div>
         <div style="display:flex;gap:10px;align-items:center;">
-          <input readonly value="${location.origin}/dismissal/${id}" style="flex:1;padding:12px;border:1px solid var(--border2);border-radius:12px;background:var(--surface3);color:var(--text);font-size:12px;font-family:ui-monospace,monospace;outline:none;">
-          <button class="btn btn-ghost btn-sm" onclick="copyLink(${id})" style="padding:12px 16px;">Копировать</button>
+          <input readonly value="${location.origin}/dismissal/${id}?t=${d.access_token||''}" style="flex:1;padding:12px;border:1px solid var(--border2);border-radius:12px;background:var(--surface3);color:var(--text);font-size:12px;font-family:ui-monospace,monospace;outline:none;">
+          <button class="btn btn-ghost btn-sm" onclick="copyLink(${id},${JSON.stringify(d.access_token||'')})" style="padding:12px 16px;">Копировать</button>
         </div>
       </div>
 
@@ -484,8 +484,9 @@ async function signOff(id, dept) {
 function exportDismissal(did){window.open("/api/dismissals/"+did+"/export","_blank");}
     function closeDetail(){ document.getElementById('m-detail').classList.remove('open'); }
 
-function copyLink(id){
-  navigator.clipboard.writeText(location.origin+'/dismissal/'+id);
+function copyLink(id, token){
+  const url = location.origin+'/dismissal/'+id+(token?'?t='+token:'');
+  navigator.clipboard.writeText(url);
   toast('Ссылка скопирована','ok');
 }
 

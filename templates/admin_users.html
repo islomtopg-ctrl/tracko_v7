@@ -357,7 +357,7 @@ async function initiateDismissal(){
     closeModal();
     const goPage = confirm(`Процесс увольнения запущен!\nСкопировать ссылку для сотрудника?`);
     if(goPage){
-      navigator.clipboard.writeText(location.origin+'/dismissal/'+r.dismissal_id);
+      navigator.clipboard.writeText(location.origin+'/dismissal/'+r.dismissal_id+(r.access_token?'?t='+r.access_token:''));
       alert('Ссылка скопирована в буфер обмена');
     }
     toast('Процесс увольнения запущен','ok');

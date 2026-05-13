@@ -1,164 +1,473 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="">
+<html lang="ru" data-theme="{{ request.cookies.get('theme','') }}">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Tracko — Заявки</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0;}
-:root{--bg:#f2f2f7;--surface:#fff;--surface2:#f2f2f7;--surface3:#e5e5ea;--border:rgba(0,0,0,.09);--border2:rgba(0,0,0,.15);--text:#1c1c1e;--text2:#6c6c70;--text3:#aeaeb2;--accent:#007AFF;--green:#34c759;--amber:#ff9f0a;--red:#ff3b30;--r:12px;--shadow:0 1px 3px rgba(0,0,0,.06);--sans:'Inter',system-ui,sans-serif;}
-[data-theme="dark"]{--bg:#000;--surface:#1c1c1e;--surface2:#2c2c2e;--surface3:#3a3a3c;--border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);--text:#f5f5f7;--text2:#98989d;--text3:#48484a;}
-html{-webkit-font-smoothing:antialiased;}body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
-.nav{position:sticky;top:0;z-index:100;height:56px;background:rgba(242,242,247,.88);backdrop-filter:blur(20px);border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;}
-[data-theme="dark"] .nav{background:rgba(0,0,0,.8);}
-.nav-left{display:flex;align-items:center;gap:12px;}.back{color:var(--accent);text-decoration:none;font-size:14px;font-weight:500;display:flex;align-items:center;gap:4px;}.nav-title{font-size:16px;font-weight:600;}
-.btn{font-family:var(--sans);font-size:13px;font-weight:500;padding:7px 14px;border-radius:980px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
-.btn-primary{background:var(--accent);color:#fff;}.btn-ghost{background:var(--surface);color:var(--text2);border:.5px solid var(--border2);box-shadow:var(--shadow);}.btn-ghost:hover{background:var(--surface2);}
-.content{max-width:860px;margin:0 auto;padding:24px 20px 60px;}
-.emp-new{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--sans);margin-bottom:20px;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
-.emp-new:hover{opacity:.88;}
-.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
-.kpi{background:var(--surface);border:.5px solid var(--border);border-radius:14px;padding:14px;text-align:center;box-shadow:var(--shadow);}
-.kpi-n{font-size:24px;font-weight:700;line-height:1;margin-bottom:3px;}.kpi-l{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;}
-.filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
-.fb{padding:6px 14px;border-radius:980px;background:var(--surface);border:.5px solid var(--border2);font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--sans);transition:all .15s;box-shadow:var(--shadow);}
-.fb.on{background:var(--accent);color:#fff;border-color:var(--accent);}
-.list{display:flex;flex-direction:column;gap:8px;}
-.card{background:var(--surface);border:.5px solid var(--border);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow);}
-.card-top{display:flex;align-items:center;gap:10px;margin-bottom:5px;}.card-name{font-size:14px;font-weight:600;flex:1;}
-.card-meta{font-size:12px;color:var(--text2);margin-bottom:6px;}
-.card-reason{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:8px;}
-.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;}
-.b-pend{background:rgba(255,149,0,.12);color:#FF9500;}.b-appr{background:rgba(52,199,89,.12);color:#34c759;}.b-rej{background:rgba(255,59,48,.12);color:#ff3b30;}
-.cat-tag{font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:var(--accent);background:rgba(0,122,255,.1);padding:3px 8px;border-radius:6px;}
-.act-row{display:flex;gap:8px;margin-top:10px;}
-.btn-approve{background:#34c759;color:#fff;padding:8px 16px;border-radius:10px;border:none;font-weight:600;font-size:13px;cursor:pointer;font-family:var(--sans);}
-.btn-reject{background:rgba(255,59,48,.1);color:#ff3b30;padding:8px 16px;border-radius:10px;border:1px solid rgba(255,59,48,.2);font-weight:600;font-size:13px;cursor:pointer;font-family:var(--sans);}
-.empty{text-align:center;padding:56px 20px;color:var(--text2);}
-.empty-icon{font-size:40px;margin-bottom:12px;opacity:.5;}.empty-txt{font-size:15px;font-weight:500;}
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
-.overlay.open{display:flex;}@media(min-width:600px){.overlay{align-items:center;}}
-.sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;animation:slideUp .3s cubic-bezier(.32,0,.67,0);}
-@media(min-width:600px){.sheet{border-radius:20px;}}
-@keyframes slideUp{from{transform:translateY(40px);opacity:0;}to{transform:translateY(0);opacity:1;}}
-.sheet-head{display:flex;align-items:flex-start;justify-content:space-between;padding:20px 20px 0;}
-.sheet-title{font-size:17px;font-weight:700;}.sheet-sub{font-size:13px;color:var(--text2);margin-top:2px;}
-.sheet-x{background:var(--surface2);border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);}
-.sheet-body{padding:16px 20px;}.sheet-foot{padding:0 20px 20px;display:flex;gap:10px;}
-.field{margin-bottom:14px;}.field label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;}
-.field select,.field textarea,.field input{width:100%;background:var(--surface2);border:.5px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--text);font-family:var(--sans);font-size:14px;outline:none;transition:border .15s;}
-.field select:focus,.field textarea:focus,.field input:focus{border-color:var(--accent);}
-.field textarea{resize:none;height:80px;}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:var(--bg);padding:10px 20px;border-radius:980px;font-size:13px;font-weight:500;z-index:999;transition:transform .25s;pointer-events:none;}
-.toast.show{transform:translateX(-50%) translateY(0);}.toast.err{background:#ff3b30;color:#fff;}
-</style>
-  <link rel="manifest" href="/static/manifest.json">
-  <meta name="theme-color" content="#007AFF">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Tracko">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+  <title>Tracko — Заявки</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f2f2f7;
+      --surface: rgba(255, 255, 255, 0.85);
+      --surface-solid: #ffffff;
+      --surface2: #f2f2f7;
+      --surface3: #e5e5ea;
+      --border: rgba(0, 0, 0, 0.08);
+      --border2: rgba(0, 0, 0, 0.12);
+      --text: #1c1c1e;
+      --text2: #6c6c70;
+      --text3: #aeaeb2;
+      --accent: #4361EE;
+      --ios-blue: #007AFF;
+      --ios-green: #34C759;
+      --ios-orange: #FF9500;
+      --ios-red: #FF3B30;
+      --r: 16px;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    }
+
+    [data-theme="dark"] {
+      --bg: #000000;
+      --surface: rgba(28, 28, 30, 0.85);
+      --surface-solid: #1c1c1e;
+      --surface2: #2c2c2e;
+      --surface3: #3a3a3c;
+      --border: rgba(255, 255, 255, 0.1);
+      --border2: rgba(255, 255, 255, 0.15);
+      --text: #f5f5f7;
+      --text2: #98989d;
+      --text3: #48484a;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { -webkit-font-smoothing: antialiased; }
+    body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; overflow-x: hidden; }
+
+    /* Navigation */
+    .nav {
+      position: sticky; top: 0; z-index: 100; height: 60px;
+      background: var(--surface); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: .5px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+    }
+    .nav-left { display: flex; align-items: center; gap: 14px; }
+    .back-btn {
+      color: var(--accent); text-decoration: none; font-size: 15px; font-weight: 500;
+      display: flex; align-items: center; gap: 4px; transition: opacity 0.2s;
+    }
+    .back-btn:active { opacity: 0.6; }
+    .nav-title { font-size: 17px; font-weight: 600; letter-spacing: -0.4px; }
+
+    /* Content Layout */
+    .container { max-width: 860px; margin: 0 auto; padding: 24px 20px 100px; }
+
+    /* New Request Button (Employee) */
+    .btn-new-req {
+      width: 100%; padding: 16px; background: var(--accent); color: #fff;
+      border: none; border-radius: 16px; font-size: 15px; font-weight: 600;
+      cursor: pointer; font-family: var(--sans); margin-bottom: 24px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 8px 24px rgba(67, 97, 238, 0.25);
+      transition: all 0.2s;
+    }
+    .btn-new-req:active { transform: scale(0.98); opacity: 0.9; }
+
+    /* KPI Row */
+    .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+    @media (max-width: 600px) { .kpi-row { grid-template-columns: 1fr 1fr; } .kpi-row div:last-child { grid-column: span 2; } }
+    
+    .kpi-card {
+      background: var(--surface-solid); border: .5px solid var(--border);
+      border-radius: 18px; padding: 18px 14px; box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .kpi-val { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; letter-spacing: -0.5px; }
+    .kpi-lab { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* Segmented Filter */
+    .filters-wrap {
+      background: var(--surface2); border-radius: 12px; padding: 3px;
+      display: flex; gap: 2px; margin-bottom: 24px;
+    }
+    .filter-btn {
+      flex: 1; border: none; background: transparent; padding: 8px 10px;
+      border-radius: 10px; font-size: 13px; font-weight: 500; color: var(--text2);
+      cursor: pointer; font-family: var(--sans); transition: all 0.2s;
+    }
+    .filter-btn.active { background: var(--surface-solid); color: var(--text); box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
+    
+    /* Request List & Cards */
+    .req-list { display: grid; gap: 12px; }
+    .req-card {
+      background: var(--surface-solid); border: .5px solid var(--border);
+      border-radius: 20px; padding: 18px 20px; box-shadow: var(--shadow);
+      position: relative;
+    }
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .card-info { display: flex; align-items: center; gap: 12px; flex: 1; }
+    .emp-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 600; color: #fff;
+    }
+    .emp-name { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
+    .req-cat-badge {
+      font-size: 11px; font-weight: 700; color: var(--accent);
+      background: rgba(67,97,238,0.1); padding: 3px 10px; border-radius: 6px;
+      display: inline-block; margin-top: 2px;
+    }
+    
+    .status-chip {
+      font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 980px;
+    }
+    .b-pend { background: rgba(255, 149, 0, 0.12); color: var(--ios-orange); }
+    .b-appr { background: rgba(52, 199, 89, 0.12); color: var(--ios-green); }
+    .b-rej { background: rgba(255, 59, 48, 0.12); color: var(--ios-red); }
+
+    .card-body { margin-bottom: 16px; }
+    .req-reason { font-size: 14px; color: var(--text2); line-height: 1.5; }
+    
+    .card-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-top: 14px; border-top: .5px solid var(--border);
+    }
+    .meta-time { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text3); }
+    
+    .btn-action {
+      background: var(--surface2); color: var(--accent); border: none;
+      padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-action:active { transform: scale(0.96); filter: brightness(0.95); }
+
+    /* Modal Sheet */
+    .overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      z-index: 500; align-items: flex-end; justify-content: center;
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    }
+    .overlay.open { display: flex; }
+    @media (min-width: 600px) { .overlay { align-items: center; } }
+
+    .sheet {
+      background: var(--surface-solid); width: 100%; max-width: 480px;
+      border-radius: 24px 24px 0 0; padding: 24px;
+      transform: translateY(40px); opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    @media (min-width: 600px) { .sheet { border-radius: 24px; } }
+    .overlay.open .sheet { transform: translateY(0); opacity: 1; }
+
+    .sheet-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+    .sheet-title { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .sheet-close {
+      width: 30px; height: 30px; border-radius: 50%; background: var(--surface2);
+      border: none; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text2);
+    }
+
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 8px; }
+    .form-ctrl {
+      width: 100%; background: var(--surface2); border: 1.5px solid transparent;
+      border-radius: 12px; padding: 12px 14px; color: var(--text);
+      font-family: var(--sans); font-size: 15px; outline: none; transition: all 0.2s;
+    }
+    .form-ctrl:focus { background: var(--surface-solid); border-color: var(--accent); box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1); }
+    textarea.form-ctrl { resize: none; height: 100px; }
+
+    .sheet-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+    .btn-main {
+      padding: 14px; border-radius: 14px; border: none; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-p { background: var(--accent); color: #fff; }
+    .btn-s { background: var(--surface2); color: var(--text); }
+    .btn-r { background: rgba(255, 59, 48, 0.1); color: var(--ios-red); }
+
+    /* Empty State */
+    .empty-state { text-align: center; padding: 80px 20px; }
+    .empty-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.3; }
+    .empty-title { font-size: 18px; font-weight: 600; color: var(--text2); }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
+      background: rgba(28, 28, 30, 0.95); color: #fff; padding: 12px 24px;
+      border-radius: 980px; font-size: 14px; font-weight: 500; z-index: 1000;
+      backdrop-filter: blur(10px); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.err { background: var(--ios-red); }
+  </style>
 </head>
-<body data-theme="{{ request.cookies.get('theme','') }}">
+<body>
+
+<script>
+  (function() {
+    const t = localStorage.getItem('tracko-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+
 <nav class="nav">
   <div class="nav-left">
-    <a href="/" class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>Главная</a>
+    <a href="/dashboard" class="back-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Главная
+    </a>
     <span class="nav-title">Заявки на технику</span>
   </div>
 </nav>
-<div class="content">
+
+<div class="container">
   {% if user.role == 'employee' %}
-  <button class="emp-new" onclick="open_nr()">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Подать заявку на технику
+  <button class="btn-new-req" onclick="open_m('m-nr')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Подать новую заявку
   </button>
   {% endif %}
+
   {% if user.role not in ('employee',) %}
   <div class="kpi-row">
-    <div class="kpi"><div class="kpi-n" id="cn-p" style="color:#FF9500;">—</div><div class="kpi-l">Ожидают</div></div>
-    <div class="kpi"><div class="kpi-n" id="cn-a" style="color:#34c759;">—</div><div class="kpi-l">Одобрено</div></div>
-    <div class="kpi"><div class="kpi-n" id="cn-r" style="color:#ff3b30;">—</div><div class="kpi-l">Отклонено</div></div>
+    <div class="kpi-card"><div class="kpi-val" id="cn-p" style="color:var(--ios-orange);">0</div><div class="kpi-lab">Ожидают</div></div>
+    <div class="kpi-card"><div class="kpi-val" id="cn-a" style="color:var(--ios-green);">0</div><div class="kpi-lab">Одобрено</div></div>
+    <div class="kpi-card"><div class="kpi-val" id="cn-r" style="color:var(--ios-red);">0</div><div class="kpi-lab">Отклонено</div></div>
   </div>
   {% endif %}
-  <div class="filters">
-    <button class="fb on" onclick="flt('',this)">Все</button>
-    <button class="fb" onclick="flt('pending',this)">⏳ Ожидают</button>
-    <button class="fb" onclick="flt('approved',this)">✅ Одобрено</button>
-    <button class="fb" onclick="flt('rejected',this)">❌ Отклонено</button>
+
+  <div class="filters-wrap">
+    <button class="filter-btn active" data-f="" onclick="flt('', this)">Все</button>
+    <button class="filter-btn" data-f="pending" onclick="flt('pending', this)">Ожидают</button>
+    <button class="filter-btn" data-f="approved" onclick="flt('approved', this)">Одобрено</button>
+    <button class="filter-btn" data-f="rejected" onclick="flt('rejected', this)">Отклонено</button>
   </div>
-  <div class="list" id="list"><div class="empty"><div class="empty-icon">📋</div><div class="empty-txt">Загрузка…</div></div></div>
+
+  <div class="req-list" id="list">
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <div class="empty-title">Загрузка данных...</div>
+    </div>
+  </div>
 </div>
 
+<!-- Modal: New Request -->
 <div class="overlay" id="m-nr">
   <div class="sheet">
-    <div class="sheet-head"><div><div class="sheet-title">Новая заявка</div><div class="sheet-sub">Запрос оборудования</div></div><button class="sheet-x" onclick="close_m('m-nr')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="sheet-header">
+      <div>
+        <div class="sheet-title">Новая заявка</div>
+        <div style="font-size: 13px; color: var(--text2); margin-top: 4px;">Запрос на оборудование</div>
+      </div>
+      <button class="sheet-close" onclick="close_m('m-nr')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
     <div class="sheet-body">
-      <div class="field"><label>Категория *</label>
-        <select id="nr-c">
-          <option value="Ноутбук">💻 Ноутбук</option><option value="Монитор">🖥️ Монитор</option>
-          <option value="Телефон">📱 Телефон</option><option value="Кресло">🪑 Кресло</option>
-          <option value="Стол">🪵 Стол</option><option value="Другое">📦 Другое</option>
+      <div class="form-group">
+        <label>Категория техники</label>
+        <select id="nr-c" class="form-ctrl">
+          <option value="Ноутбук">💻 Ноутбук</option>
+          <option value="Монитор">🖥️ Монитор</option>
+          <option value="Телефон">📱 Телефон</option>
+          <option value="Кресло">🪑 Кресло</option>
+          <option value="Стол">🪵 Стол</option>
+          <option value="Другое">📦 Другое</option>
         </select>
       </div>
-      <div class="field"><label>Обоснование *</label><textarea id="nr-r" placeholder="Зачем нужно, для каких задач…"></textarea></div>
+      <div class="form-group">
+        <label>Обоснование</label>
+        <textarea id="nr-r" class="form-ctrl" placeholder="Напишите, зачем вам это оборудование..."></textarea>
+      </div>
     </div>
-    <div class="sheet-foot"><button class="btn btn-ghost" style="flex:1" onclick="close_m('m-nr')">Отмена</button><button class="btn btn-primary" style="flex:1" onclick="sub_req()">Отправить</button></div>
+    <div class="sheet-foot">
+      <button class="btn-main btn-s" onclick="close_m('m-nr')">Отмена</button>
+      <button class="btn-main btn-p" onclick="sub_req()">Отправить</button>
+    </div>
   </div>
 </div>
+
+<!-- Modal: Decision Action -->
 <div class="overlay" id="m-act">
   <div class="sheet">
-    <div class="sheet-head"><div><div class="sheet-title" id="am-t">Решение</div><div class="sheet-sub" id="am-s"></div></div><button class="sheet-x" onclick="close_m('m-act')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
-    <div class="sheet-body"><div class="field"><label>Комментарий</label><textarea id="am-n" placeholder="Причина или пояснение…"></textarea></div></div>
+    <div class="sheet-header">
+      <div>
+        <div class="sheet-title" id="am-t">Решение по заявке</div>
+        <div style="font-size: 13px; color: var(--text2); margin-top: 4px;" id="am-s"></div>
+      </div>
+      <button class="sheet-close" onclick="close_m('m-act')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body">
+      <div class="form-group">
+        <label>Комментарий / Пояснение</label>
+        <textarea id="am-n" class="form-ctrl" placeholder="Напишите причину решения..."></textarea>
+      </div>
+    </div>
     <div class="sheet-foot">
-      <button class="btn btn-ghost" style="flex:1" onclick="close_m('m-act')">Отмена</button>
-      <button style="flex:1;background:rgba(255,59,48,.1);color:#ff3b30;padding:10px;border-radius:10px;border:1px solid rgba(255,59,48,.2);font-weight:600;font-size:13px;cursor:pointer;font-family:var(--sans);" onclick="do_act('rejected')">❌ Отклонить</button>
-      <button class="btn btn-primary" style="flex:1" onclick="do_act('approved')">✅ Одобрить</button>
+      <button class="btn-main btn-r" onclick="do_act('rejected')">Отклонить</button>
+      <button class="btn-main btn-p" onclick="do_act('approved')">Одобрить</button>
     </div>
   </div>
 </div>
+
 <div class="toast" id="toast"></div>
+
 <script>
-const MR="{{user.role}}";
-let all=[],curR=null;
-const ST={pending:'⏳ Ожидает',approved:'✅ Одобрено',rejected:'❌ Отклонено'};
-const SC={pending:'b-pend',approved:'b-appr',rejected:'b-rej'};
-function ts(s){if(!s)return'—';const d=new Date((s.includes('T')?s:s.replace(' ','T'))+'Z');return d.toLocaleString('ru',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});}
-async function load(){
-  const r=await fetch('/api/requests').then(r=>r.json()).catch(()=>[]);
-  all=Array.isArray(r)?r:[];
-  ['cn-p','cn-a','cn-r'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=all.filter(x=>x.status===['pending','approved','rejected'][i]).length;});
-  render(all);
-}
-function flt(v,btn){document.querySelectorAll('.fb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');render(v?all.filter(x=>x.status===v):all);}
-function render(rows){
-  const el=document.getElementById('list');
-  if(!rows.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-txt">Заявок нет</div></div>';return;}
-  const canAct=['superadmin','aho','hr'].includes(MR);
-  el.innerHTML=rows.map(r=>`<div class="card">
-    <div class="card-top"><span class="card-name">${r.employee_name||'—'}</span><span class="badge ${SC[r.status]||'b-pend'}">${ST[r.status]||r.status}</span><span class="cat-tag">${r.category}</span></div>
-    <div class="card-meta">${ts(r.created_at)}</div>
-    ${r.reason?`<div class="card-reason">${r.reason.slice(0,220)}</div>`:''}
-    ${r.rejection_reason?`<div style="font-size:12px;color:#ff3b30;margin-top:4px;">Причина: ${r.rejection_reason}</div>`:''}
-    ${canAct&&r.status==='pending'?`<div class="act-row"><button class="btn-approve" onclick="open_act(${r.id},'${(r.employee_name||'').replace(/'/g,'')}','${r.category}')">Принять решение</button></div>`:''}
-  </div>`).join('');
-}
-function open_nr(){document.getElementById('m-nr').classList.add('open');}
-async function sub_req(){
-  const cat=document.getElementById('nr-c').value,reason=document.getElementById('nr-r').value.trim();
-  if(!reason){toast('Укажите обоснование','err');return;}
-  const r=await fetch('/api/requests',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:cat,reason})});
-  const d=await r.json();
-  if(d.ok){toast('Заявка отправлена ✓');close_m('m-nr');document.getElementById('nr-r').value='';load();}else toast(d.error||'Ошибка','err');
-}
-function open_act(rid,name,cat){curR=rid;document.getElementById('am-t').textContent=`Заявка: ${cat}`;document.getElementById('am-s').textContent=`От: ${name}`;document.getElementById('am-n').value='';document.getElementById('m-act').classList.add('open');}
-async function do_act(action){
-  const note=document.getElementById('am-n').value.trim();
-  const r=await fetch(`/api/requests/${curR}/action`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,note})});
-  const d=await r.json();
-  if(d.ok){toast(action==='approved'?'Одобрено ✓':'Отклонено');close_m('m-act');load();}else toast(d.error||'Ошибка','err');
-}
-function close_m(id){document.getElementById(id).classList.remove('open');}
-document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
-function toast(m,t='ok'){const el=document.getElementById('toast');el.textContent=m;el.className='toast show'+(t==='err'?' err':'');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2600);}
-load();
+  const USER_ROLE = "{{ user.role }}";
+  const STATUS_LABELS = { pending: 'Ожидает', approved: 'Одобрено', rejected: 'Отклонено' };
+  const STATUS_CLASSES = { pending: 'b-pend', approved: 'b-appr', rejected: 'b-rej' };
+  const COLORS = ['#4361EE', '#34C759', '#FF9500', '#AF52DE', '#FF3B30', '#5856D6'];
+  
+  let requests = [], currentId = null;
+
+  function formatDate(s) {
+    if (!s) return '—';
+    const d = new Date((s.includes('T') ? s : s.replace(' ', 'T')) + 'Z');
+    return d.toLocaleString('ru', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+
+  async function loadData() {
+    try {
+      const resp = await fetch('/api/requests');
+      const data = await resp.json();
+      requests = Array.isArray(data) ? data : [];
+      
+      ['cn-p', 'cn-a', 'cn-r'].forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = requests.filter(x => x.status === ['pending', 'approved', 'rejected'][i]).length;
+      });
+      
+      render(requests);
+    } catch (e) {
+      toast('Ошибка загрузки', 'err');
+    }
+  }
+
+  function flt(val, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render(val ? requests.filter(x => x.status === val) : requests);
+  }
+
+  function render(rows) {
+    const list = document.getElementById('list');
+    if (!rows.length) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">✨</div>
+          <div class="empty-title">Заявок пока нет</div>
+        </div>`;
+      return;
+    }
+
+    const canAct = ['superadmin', 'aho', 'hr'].includes(USER_ROLE);
+    
+    list.innerHTML = rows.map(r => {
+      const initial = (r.employee_name || '?').charAt(0).toUpperCase();
+      const color = COLORS[Math.abs(r.employee_name?.length || 0) % COLORS.length];
+      
+      return `
+        <div class="req-card">
+          <div class="card-header">
+            <div class="card-info">
+              <div class="emp-avatar" style="background: ${color}">${initial}</div>
+              <div>
+                <div class="emp-name">${r.employee_name || '—'}</div>
+                <div class="req-cat-badge">${r.category}</div>
+              </div>
+            </div>
+            <span class="status-chip ${STATUS_CLASSES[r.status] || 'b-pend'}">${STATUS_LABELS[r.status] || r.status}</span>
+          </div>
+          <div class="card-body">
+            <div class="req-reason">${r.reason || 'Без обоснования'}</div>
+            ${r.rejection_reason ? `<div style="font-size:12px; color:var(--ios-red); margin-top:8px; font-weight:500;">✕ ${r.rejection_reason}</div>` : ''}
+          </div>
+          <div class="card-footer">
+            <div class="meta-time">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              ${formatDate(r.created_at)}
+            </div>
+            ${canAct && r.status === 'pending' ? `
+              <button class="btn-action" onclick="open_act(${r.id}, '${(r.employee_name||"").replace(/'/g, "")}', '${r.category}')">Решение</button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function open_m(id) {
+    document.getElementById(id).classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function close_m(id) {
+    document.getElementById(id).classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  async function sub_req() {
+    const cat = document.getElementById('nr-c').value;
+    const reason = document.getElementById('nr-r').value.trim();
+    if (!reason) { toast('Укажите обоснование', 'err'); return; }
+    
+    try {
+      const resp = await fetch('/api/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: cat, reason })
+      });
+      const d = await resp.json();
+      if (d.ok) {
+        toast('Заявка отправлена ✓');
+        close_m('m-nr');
+        document.getElementById('nr-r').value = '';
+        loadData();
+      } else toast(d.error || 'Ошибка', 'err');
+    } catch (e) { toast('Ошибка сети', 'err'); }
+  }
+
+  function open_act(rid, name, cat) {
+    currentId = rid;
+    document.getElementById('am-t').textContent = cat;
+    document.getElementById('am-s').textContent = 'От: ' + name;
+    document.getElementById('am-n').value = '';
+    open_m('m-act');
+  }
+
+  async function do_act(action) {
+    const note = document.getElementById('am-n').value.trim();
+    try {
+      const resp = await fetch(`/api/requests/${currentId}/action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, note })
+      });
+      const d = await resp.json();
+      if (d.ok) {
+        toast(action === 'approved' ? 'Одобрено ✓' : 'Отклонено');
+        close_m('m-act');
+        loadData();
+      } else toast(d.error || 'Ошибка', 'err');
+    } catch (e) { toast('Ошибка сети', 'err'); }
+  }
+
+  function toast(m, t = 'ok') {
+    const el = document.getElementById('toast');
+    el.textContent = m;
+    el.className = 'toast show' + (t === 'err' ? ' err' : '');
+    clearTimeout(el._tid);
+    el._tid = setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  document.querySelectorAll('.overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) close_m(o.id); });
+  });
+
+  loadData();
 </script>
-</body></html>
+</body>
+</html>

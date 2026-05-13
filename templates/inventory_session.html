@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="{{ request.cookies.get('theme','') }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+  <title>{{ session.title }} — Tracko</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f2f2f7;
+      --surface: rgba(255, 255, 255, 0.85);
+      --surface-solid: #ffffff;
+      --surface2: #f2f2f7;
+      --surface3: #e5e5ea;
+      --border: rgba(0, 0, 0, 0.08);
+      --text: #1c1c1e;
+      --text2: #6c6c70;
+      --text3: #aeaeb2;
+      --accent: #4361EE;
+      --ios-blue: #007AFF;
+      --ios-green: #34C759;
+      --ios-red: #FF3B30;
+      --ios-orange: #FF9500;
+      --r: 16px;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    }
+
+    [data-theme="dark"] {
+      --bg: #000000;
+      --surface: rgba(28, 28, 30, 0.85);
+      --surface-solid: #1c1c1e;
+      --surface2: #2c2c2e;
+      --surface3: #3a3a3c;
+      --border: rgba(255, 255, 255, 0.1);
+      --text: #f5f5f7;
+      --text2: #98989d;
+      --text3: #48484a;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-font-smoothing: antialiased; }
+    body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+    /* Navigation */
+    .nav {
+      position: sticky; top: 0; z-index: 100; padding: 12px 20px;
+      background: var(--surface); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: .5px solid var(--border);
+    }
+    .nav-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .back-btn {
+      color: var(--accent); text-decoration: none; font-size: 15px; font-weight: 500;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .nav-title { font-size: 17px; font-weight: 700; letter-spacing: -0.4px; }
+
+    .progress-wrap { display: flex; align-items: center; gap: 12px; }
+    .progress-bar { flex: 1; height: 6px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+    .progress-text { font-size: 12px; font-weight: 700; color: var(--accent); min-width: 35px; text-align: right; }
+
+    /* Toolbar */
+    .toolbar {
+      position: sticky; top: 110px; z-index: 90;
+      background: var(--bg); padding: 12px 20px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .search-box {
+      background: var(--surface2); border-radius: 12px; display: flex; align-items: center; padding: 8px 12px; gap: 8px;
+    }
+    .search-box input {
+      background: none; border: none; color: var(--text); font-family: var(--sans); font-size: 15px; width: 100%; outline: none;
+    }
+    .search-box svg { color: var(--text3); }
+
+    .segments {
+      background: var(--surface3); border-radius: 10px; padding: 2px; display: flex; gap: 2px;
+    }
+    .segment {
+      flex: 1; border: none; background: none; padding: 6px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; color: var(--text2); cursor: pointer; transition: all 0.2s;
+    }
+    .segment.active { background: var(--surface-solid); color: var(--text); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+    /* List */
+    .container { padding: 0 20px 100px; max-width: 800px; margin: 0 auto; }
+    .list { display: grid; gap: 10px; }
+    
+    .card {
+      background: var(--surface-solid); border: .5px solid var(--border);
+      border-radius: 18px; padding: 14px 16px; display: flex; align-items: center; gap: 16px;
+      box-shadow: var(--shadow); transition: transform 0.2s;
+    }
+    .card:active { transform: scale(0.98); }
+
+    .card-icon {
+      width: 44px; height: 44px; border-radius: 12px; background: var(--surface2);
+      display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+    }
+    .card-body { flex: 1; min-width: 0; }
+    .card-row1 { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; }
+    .card-model { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-inv { font-family: monospace; font-size: 12px; color: var(--accent); font-weight: 600; }
+    .card-meta { font-size: 12px; color: var(--text2); font-weight: 500; }
+
+    .card-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .action-btn {
+      width: 36px; height: 36px; border-radius: 50%; border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-found { background: rgba(52, 199, 89, 0.1); color: var(--ios-green); }
+    .btn-missing { background: rgba(255, 59, 48, 0.1); color: var(--ios-red); }
+    .btn-damaged { background: rgba(255, 149, 0, 0.1); color: var(--ios-orange); }
+    
+    .action-btn.active { background: currentColor; color: #fff; }
+    .action-btn:disabled { opacity: 0.3; cursor: default; }
+
+    .status-badge {
+      font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; margin-top: 4px; display: inline-block;
+    }
+    .s-pending { background: var(--surface3); color: var(--text3); }
+    .s-found { background: rgba(52, 199, 89, 0.1); color: var(--ios-green); }
+    .s-not_found { background: rgba(255, 59, 48, 0.1); color: var(--ios-red); }
+    .s-damaged { background: rgba(255, 149, 0, 0.1); color: var(--ios-orange); }
+
+    /* Footer */
+    .footer {
+      position: fixed; bottom: 0; left: 0; right: 0; padding: 16px 20px 34px;
+      background: var(--surface); backdrop-filter: blur(20px); border-top: .5px solid var(--border);
+      display: flex; justify-content: center;
+    }
+    .btn-finish {
+      background: var(--ios-green); color: #fff; border: none; padding: 12px 32px;
+      border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
+    }
+
+    /* Modal / Sheet */
+    .overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      z-index: 500; align-items: flex-end; justify-content: center;
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    }
+    .overlay.open { display: flex; }
+    .sheet {
+      background: var(--surface-solid); width: 100%; max-width: 480px;
+      border-radius: 24px 24px 0 0; padding: 24px;
+      transform: translateY(40px); opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .overlay.open .sheet { transform: translateY(0); opacity: 1; }
+    .sheet-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+    .sheet-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
+    .sheet-label { color: var(--text2); }
+    .sheet-val { font-weight: 600; }
+    .sheet-area {
+      width: 100%; background: var(--surface2); border: none; border-radius: 12px;
+      padding: 12px; font-family: var(--sans); font-size: 15px; color: var(--text); resize: none; margin-top: 10px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(100px);
+      background: rgba(28, 28, 30, 0.95); color: #fff; padding: 12px 24px;
+      border-radius: 980px; font-size: 14px; font-weight: 500; z-index: 1000;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<script>
+  (function() {
+    const t = localStorage.getItem('tracko-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+
+<nav class="nav">
+  <div class="nav-top">
+    <a href="/inventory" class="back-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Назад
+    </a>
+    <span class="nav-title">Инвентаризация</span>
+    <div style="width: 50px;"></div>
+  </div>
+  <div style="font-size: 18px; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.5px;">{{ session.title }}</div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="pb" style="width: 0%"></div></div>
+    <div class="progress-text" id="pt">0%</div>
+  </div>
+</nav>
+
+<div class="toolbar">
+  <div class="search-box">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    <input type="text" id="search" placeholder="Поиск по номеру или модели..." oninput="filter()">
+  </div>
+  <div class="segments">
+    <button class="segment active" onclick="setFilter('all', this)">Все</button>
+    <button class="segment" onclick="setFilter('pending', this)">Ожидают</button>
+    <button class="segment" onclick="setFilter('found', this)">Найдено</button>
+    <button class="segment" onclick="setFilter('not_found', this)">Нет</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="list" id="list">
+    <!-- Items load here -->
+  </div>
+</div>
+
+<div class="footer" id="finish-wrap" style="display: none;">
+  <button class="btn-finish" onclick="location.href='/inventory'">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    Завершить работу
+  </button>
+</div>
+
+<!-- Note Sheet -->
+<div class="overlay" id="m-note">
+  <div class="sheet">
+    <div class="sheet-title" id="m-title">Активы</div>
+    <div class="sheet-row"><span class="sheet-label">Инв. номер:</span><span class="sheet-val" id="m-inv"></span></div>
+    <div class="sheet-row"><span class="sheet-label">Кабинет:</span><span class="sheet-val" id="m-room"></span></div>
+    <textarea id="m-note-val" class="sheet-area" rows="3" placeholder="Добавьте заметку (напр. поврежден экран)..."></textarea>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
+      <button class="segment" style="background: var(--surface2); padding: 12px;" onclick="closeM()">Отмена</button>
+      <button class="segment active" style="background: var(--accent); color: #fff; padding: 12px;" onclick="saveNote()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let ALL = [], FILT = 'all', Q = '';
+  const SID = {{ session.id }};
+  const ICONS = {Ноутбук:'💻',Монитор:'🖥️',Кресло:'🪑',Стол:'🪵',Принтер:'🖨️',Телефон:'📱',Клавиатура:'⌨️',Мышь:'🖱️'};
+
+  async function load() {
+    try {
+      const r = await fetch(`/api/inventory/sessions/${SID}`);
+      const d = await r.json();
+      ALL = d.checks;
+      updateProgress(d.session);
+      filter();
+    } catch (e) { toast('Ошибка загрузки'); }
+  }
+
+  function updateProgress(s) {
+    const pct = s.total_items ? Math.round(s.checked_items / s.total_items * 100) : 0;
+    document.getElementById('pb').style.width = pct + '%';
+    document.getElementById('pt').textContent = pct + '%';
+    document.getElementById('finish-wrap').style.display = pct === 100 ? 'flex' : 'none';
+  }
+
+  function setFilter(f, btn) {
+    FILT = f;
+    document.querySelectorAll('.segment').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filter();
+  }
+
+  function filter() {
+    Q = document.getElementById('search').value.toLowerCase();
+    let res = ALL;
+    if (FILT !== 'all') res = res.filter(i => i.status === FILT);
+    if (Q) res = res.filter(i => i.inv_num.toLowerCase().includes(Q) || i.model.toLowerCase().includes(Q));
+    
+    const list = document.getElementById('list');
+    if (!res.length) {
+      list.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3);">Ничего не найдено</div>`;
+      return;
+    }
+
+    list.innerHTML = res.map(i => `
+      <div class="card" onclick="openNote(${i.id})">
+        <div class="card-icon">${ICONS[i.category] || '📦'}</div>
+        <div class="card-body">
+          <div class="card-row1">
+            <span class="card-model">${i.model}</span>
+            <span class="card-inv">${i.inv_num}</span>
+          </div>
+          <div class="card-meta">${i.room} · ${i.employee || '—'}</div>
+          <div class="status-badge s-${i.status}">${getStatusLabel(i.status)}</div>
+        </div>
+        <div class="card-actions" onclick="event.stopPropagation()">
+          <button class="action-btn btn-missing ${i.status === 'not_found' ? 'active' : ''}" onclick="submit(${i.id}, 'not_found')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <button class="action-btn btn-found ${i.status === 'found' ? 'active' : ''}" onclick="submit(${i.id}, 'found')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function getStatusLabel(s) {
+    if (s === 'pending') return 'Ожидает';
+    if (s === 'found') return 'Найден';
+    if (s === 'not_found') return 'Отсутствует';
+    if (s === 'damaged') return 'Поврежден';
+    return s;
+  }
+
+  async function submit(cid, status) {
+    try {
+      const r = await fetch(`/api/inventory/check/${cid}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      const d = await r.json();
+      if (d.ok) {
+        toast(status === 'found' ? 'Отмечено ✓' : 'Отмечено как отсутствует');
+        load();
+      }
+    } catch (e) { toast('Ошибка связи'); }
+  }
+
+  let curCid = null;
+  function openNote(cid) {
+    const i = ALL.find(x => x.id === cid);
+    if (!i) return;
+    curCid = cid;
+    document.getElementById('m-title').textContent = i.model;
+    document.getElementById('m-inv').textContent = i.inv_num;
+    document.getElementById('m-room').textContent = i.room;
+    document.getElementById('m-note-val').value = i.note || '';
+    document.getElementById('m-note').classList.add('open');
+  }
+
+  function closeM() { document.getElementById('m-note').classList.remove('open'); }
+
+  async function saveNote() {
+    const note = document.getElementById('m-note-val').value;
+    const i = ALL.find(x => x.id === curCid);
+    await submit(curCid, i.status === 'pending' ? 'found' : i.status); // Keep status or set to found
+    closeM();
+  }
+
+  function toast(m) {
+    const el = document.getElementById('toast');
+    el.textContent = m;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2000);
+  }
+
+  load();
+</script>
+</body>
+</html>

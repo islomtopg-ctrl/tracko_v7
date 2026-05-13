@@ -1,56 +1,170 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="">
+<html lang="ru" data-theme="{{ request.cookies.get('theme','') }}">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Tracko — Подписка</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#007AFF">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<style>
-*{box-sizing:border-box;margin:0;padding:0;}
-:root{--bg:#f2f2f7;--surface:#fff;--surface2:#f2f2f7;--surface3:#e5e5ea;--border:rgba(0,0,0,.09);--border2:rgba(0,0,0,.15);--text:#1c1c1e;--text2:#6c6c70;--text3:#aeaeb2;--accent:#007AFF;--r:12px;--shadow:0 1px 3px rgba(0,0,0,.06);--sans:'Inter',system-ui,sans-serif;}
-[data-theme="dark"]{--bg:#000;--surface:#1c1c1e;--surface2:#2c2c2e;--text:#f5f5f7;--text2:#98989d;--text3:#48484a;--border:rgba(255,255,255,.08);}
-html{-webkit-font-smoothing:antialiased;}body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
-.nav{position:sticky;top:0;z-index:100;height:56px;background:rgba(242,242,247,.88);backdrop-filter:blur(20px);border-bottom:.5px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;}
-[data-theme="dark"] .nav{background:rgba(0,0,0,.8);}
-.back{color:var(--accent);text-decoration:none;font-size:14px;font-weight:500;display:flex;align-items:center;gap:4px;}.nav-title{font-size:16px;font-weight:600;}
-.content{max-width:760px;margin:0 auto;padding:32px 20px 60px;}
-.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px;}
-@media(max-width:600px){.plan-grid{grid-template-columns:1fr;}}
-.plan-card{background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:22px;text-align:center;transition:all .2s;position:relative;}
-.plan-card.best{border-color:var(--accent);box-shadow:0 0 0 4px rgba(0,122,255,.08);}
-.best-label{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:3px 12px;border-radius:980px;}
-.plan-name{font-size:15px;font-weight:700;margin-bottom:6px;}
-.plan-price{font-size:28px;font-weight:800;color:var(--accent);margin-bottom:10px;line-height:1;}
-.plan-limits{font-size:12px;color:var(--text2);line-height:2.2;}
-.sec-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:12px;margin-top:24px;}
-.card{background:var(--surface);border:.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:14px;}
-.info-row{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:.5px solid var(--border);font-size:13px;}
-.info-row:last-child{border-bottom:none;}
-.info-k{color:var(--text2);}.info-v{font-weight:600;}
-.cta{background:linear-gradient(135deg,#007AFF,#5856D6);border-radius:16px;padding:24px;text-align:center;margin-top:20px;color:#fff;}
-.cta-title{font-size:18px;font-weight:700;margin-bottom:6px;}
-.cta-sub{font-size:13px;opacity:.8;margin-bottom:16px;}
-.cta-btn{display:inline-block;background:rgba(255,255,255,.2);color:#fff;border:1.5px solid rgba(255,255,255,.4);border-radius:10px;padding:10px 24px;font-size:14px;font-weight:600;text-decoration:none;transition:background .15s;}
-.cta-btn:hover{background:rgba(255,255,255,.3);}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+  <title>Подписка — Tracko</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f2f2f7;
+      --surface: rgba(255, 255, 255, 0.85);
+      --surface-solid: #ffffff;
+      --surface2: #f2f2f7;
+      --surface3: #e5e5ea;
+      --border: rgba(0, 0, 0, 0.08);
+      --text: #1c1c1e;
+      --text2: #6c6c70;
+      --text3: #aeaeb2;
+      --accent: #4361EE;
+      --ios-blue: #007AFF;
+      --shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    }
+
+    [data-theme="dark"] {
+      --bg: #000000;
+      --surface: rgba(28, 28, 30, 0.8);
+      --surface-solid: #1c1c1e;
+      --surface2: #2c2c2e;
+      --surface3: #3a3a3c;
+      --border: rgba(255, 255, 255, 0.1);
+      --text: #f5f5f7;
+      --text2: #98989d;
+      --text3: #48484a;
+      --shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-font-smoothing: antialiased; }
+    body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; line-height: 1.4; }
+
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--surface); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: .5px solid var(--border);
+      height: 64px; display: flex; align-items: center; padding: 0 24px; gap: 16px;
+    }
+    .back {
+      color: var(--accent); text-decoration: none; font-size: 15px; font-weight: 600;
+      display: flex; align-items: center; gap: 4px; transition: opacity 0.2s;
+    }
+    .back:hover { opacity: 0.7; }
+    .nav-title { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+
+    .content { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* Plan Grid */
+    .plan-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+      margin-bottom: 48px; perspective: 1000px;
+    }
+    @media(max-width: 850px) { .plan-grid { grid-template-columns: 1fr; } }
+
+    .plan-card {
+      background: var(--surface-solid); border: .5px solid var(--border);
+      border-radius: 28px; padding: 32px 24px; text-align: center;
+      box-shadow: var(--shadow); transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative; display: flex; flex-direction: column;
+    }
+    .plan-card:hover { transform: translateY(-8px) scale(1.02); }
+
+    .plan-card.best {
+      border: 2px solid var(--accent);
+      background: linear-gradient(to bottom, var(--surface-solid), var(--surface2));
+      z-index: 2;
+    }
+    .best-label {
+      position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #fff; font-size: 12px; font-weight: 800;
+      padding: 5px 16px; border-radius: 980px; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    .plan-name { font-size: 17px; font-weight: 700; color: var(--text2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+    .plan-price { font-size: 42px; font-weight: 900; color: var(--text); margin-bottom: 16px; line-height: 1; letter-spacing: -2px; }
+    .plan-price span { font-size: 18px; color: var(--text3); font-weight: 600; letter-spacing: 0; }
+
+    .plan-limits { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+    .limit-item {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      font-size: 14px; font-weight: 500; color: var(--text2);
+    }
+    .limit-item svg { color: var(--accent); opacity: 0.6; }
+
+    /* Sections */
+    .sec-hdr {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--text3); margin: 0 0 12px 16px;
+    }
+    .card {
+      background: var(--surface-solid); border: .5px solid var(--border);
+      border-radius: 24px; overflow: hidden; box-shadow: var(--shadow);
+      margin-bottom: 32px;
+    }
+    .info-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 20px; border-bottom: .5px solid var(--border);
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-k { font-size: 14px; font-weight: 600; color: var(--text2); }
+    .info-v { font-size: 15px; font-weight: 700; color: var(--text); }
+
+    /* CTA */
+    .cta-box {
+      background: linear-gradient(135deg, #4361EE, #4CC9F0);
+      border-radius: 32px; padding: 48px 32px; text-align: center;
+      color: #fff; position: relative; overflow: hidden;
+      box-shadow: 0 20px 50px rgba(67, 97, 238, 0.2);
+    }
+    .cta-box::before {
+      content: ''; position: absolute; top: -50%; left: -50%;
+      width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .cta-title { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 8px; }
+    .cta-sub { font-size: 15px; font-weight: 500; opacity: 0.9; margin-bottom: 24px; max-width: 400px; margin-left: auto; margin-right: auto; }
+    .cta-btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: #fff; color: #4361EE; border: none;
+      border-radius: 16px; padding: 14px 32px; font-size: 16px; font-weight: 700;
+      text-decoration: none; transition: all 0.2s; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 15px 30px rgba(0,0,0,0.15); }
+
+    .badge-premium {
+      background: rgba(52, 199, 89, 0.1); color: #34c759;
+      padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700;
+    }
+  </style>
 </head>
 <body data-theme="{{ request.cookies.get('theme','') }}">
+
 <nav class="nav">
-  <a href="/" class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>Главная</a>
+  <a href="/" class="back">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Главная
+  </a>
   <span class="nav-title">Подписка и тарифы</span>
 </nav>
+
 <div class="content">
   <div class="plan-grid">
     {% for key, plan in plans.items() %}
     <div class="plan-card {% if key == 'business' %}best{% endif %}">
       {% if key == 'business' %}<div class="best-label">Популярный</div>{% endif %}
       <div class="plan-name">{{ plan.label }}</div>
-      <div class="plan-price">{{ plan.price }}</div>
+      <div class="plan-price">{{ plan.price|replace('/мес', '') }}<span>/мес</span></div>
+      
       <div class="plan-limits">
-        {% if plan.max_items %}До {{ plan.max_items }} активов{% else %}∞ активов{% endif %}<br>
-        {% if plan.max_users %}До {{ plan.max_users }} пользователей{% else %}∞ пользователей{% endif %}
+        <div class="limit-item">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          {% if plan.max_items %}До {{ plan.max_items }} активов{% else %}Безлимит активов{% endif %}
+        </div>
+        <div class="limit-item">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          {% if plan.max_users %}До {{ plan.max_users }} пользователей{% else %}Безлимит пользователей{% endif %}
+        </div>
       </div>
     </div>
     {% endfor %}
@@ -58,38 +172,87 @@ html{-webkit-font-smoothing:antialiased;}body{background:var(--bg);color:var(--t
 
   <div class="sec-hdr">Текущее использование</div>
   <div class="card">
-    <div class="info-row"><span class="info-k">Текущий план</span><span class="info-v" id="cur-plan">—</span></div>
-    <div class="info-row"><span class="info-k">Активов в системе</span><span class="info-v" id="cur-items">—</span></div>
-    <div class="info-row"><span class="info-k">Пользователей</span><span class="info-v" id="cur-users">—</span></div>
-    <div class="info-row"><span class="info-k">Срок действия</span><span class="info-v" id="cur-exp" style="color:#34c759;">Бессрочно</span></div>
+    <div class="info-row">
+      <span class="info-k">Ваш тарифный план</span>
+      <span class="info-v" id="cur-plan">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-k">Активов в системе</span>
+      <span class="info-v" id="cur-items">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-k">Активных пользователей</span>
+      <span class="info-v" id="cur-users">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-k">Срок действия</span>
+      <span class="info-v" id="cur-exp"><span class="badge-premium">Бессрочно</span></span>
+    </div>
   </div>
 
-  <div class="sec-hdr">Способы оплаты</div>
+  <div class="sec-hdr">Доступные способы оплаты</div>
   <div class="card">
-    <div class="info-row"><span class="info-k">Payme Business</span><span class="info-v">Оплата в UZS</span></div>
-    <div class="info-row"><span class="info-k">Счёт-фактура (B2B)</span><span class="info-v">Перевод на р/счёт</span></div>
-    <div class="info-row"><span class="info-k">Payoneer / Wise</span><span class="info-v">Международные клиенты</span></div>
+    <div class="info-row">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:32px;height:32px;border-radius:10px;background:rgba(67,97,238,0.1);display:flex;align-items:center;justify-content:center;color:var(--accent);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <span class="info-k">Payme Business</span>
+      </div>
+      <span class="info-v">Оплата в UZS</span>
+    </div>
+    <div class="info-row">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:32px;height:32px;border-radius:10px;background:rgba(52,199,89,0.1);display:flex;align-items:center;justify-content:center;color:var(--ios-green);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M3 10h18"/><path d="M5 10V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/><path d="M7 21v-4"/><path d="M12 21v-4"/><path d="M17 21v-4"/><path d="M7 14h10"/></svg>
+        </div>
+        <span class="info-k">Счёт-фактура (B2B)</span>
+      </div>
+      <span class="info-v">Перевод на р/счёт</span>
+    </div>
+    <div class="info-row">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:32px;height:32px;border-radius:10px;background:rgba(255,159,10,0.1);display:flex;align-items:center;justify-content:center;color:#ff9f0a;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <span class="info-k">Payoneer / Wise</span>
+      </div>
+      <span class="info-v">International clients</span>
+    </div>
   </div>
 
-  <div class="cta">
-    <div class="cta-title">Обновить план или продлить подписку</div>
-    <div class="cta-sub">Свяжитесь с командой Tracko для выставления счёта</div>
-    <a href="https://t.me/tracko_support" target="_blank" class="cta-btn">📩 Написать в Telegram</a>
+  <div class="cta-box">
+    <h2 class="cta-title">Нужно больше мощностей?</h2>
+    <p class="cta-sub">Обновите план или продлите текущую подписку прямо сейчас через нашу поддержку.</p>
+    <a href="https://t.me/tracko_support" target="_blank" class="cta-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.174 6.812a1 1 0 0 0-1.012-.039L3.5 12.33a1 1 0 0 0 .151 1.868l4.475 1.078a1 1 0 0 0 .783-.162l10.158-6.914a.2.2 0 0 1 .305.23l-7.306 9.475a1 1 0 0 0 .224 1.348l6.19 4.64a1 1 0 0 0 1.6-.54l3.1-15.6a1 1 0 0 0-.001-.1z"/></svg>
+      Связаться в Telegram
+    </a>
   </div>
 </div>
+
 <script>
-const PLANS = {{ plans | tojson }};
-const SUB = {{ subscription | tojson }};
-const USED_ITEMS = {{ used_items }};
-const USED_USERS = {{ used_users }};
-document.getElementById("cur-plan").textContent = PLANS[SUB.plan]?.label || SUB.plan || "Стандарт";
-document.getElementById("cur-items").textContent = USED_ITEMS + (SUB.max_items ? " / " + SUB.max_items : " / ∞");
-document.getElementById("cur-users").textContent = USED_USERS + (SUB.max_users ? " / " + SUB.max_users : " / ∞");
-if (SUB.expires_at) {
-  const el = document.getElementById("cur-exp");
-  el.textContent = new Date(SUB.expires_at).toLocaleDateString("ru", {day:"2-digit",month:"long",year:"numeric"});
-  el.style.color = "#ff9f0a";
-}
+  const PLANS = {{ plans | tojson }};
+  const SUB = {{ subscription | tojson }};
+  const USED_ITEMS = {{ used_items }};
+  const USED_USERS = {{ used_users }};
+  
+  document.getElementById("cur-plan").textContent = PLANS[SUB.plan]?.label || SUB.plan || "Стандарт";
+  document.getElementById("cur-items").textContent = USED_ITEMS + (SUB.max_items ? " / " + SUB.max_items : " / ∞");
+  document.getElementById("cur-users").textContent = USED_USERS + (SUB.max_users ? " / " + SUB.max_users : " / ∞");
+  
+  if (SUB.expires_at) {
+    const el = document.getElementById("cur-exp");
+    const dateStr = new Date(SUB.expires_at).toLocaleDateString("ru", {day:"2-digit",month:"long",year:"numeric"});
+    el.innerHTML = `<span style="color:#ff9f0a;font-weight:700;">${dateStr}</span>`;
+  }
+
+  // Set theme from cookie initially
+  const theme = document.documentElement.getAttribute('data-theme');
+  if (!theme) {
+    const saved = localStorage.getItem('tracko-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+  }
 </script>
 </body>
 </html>

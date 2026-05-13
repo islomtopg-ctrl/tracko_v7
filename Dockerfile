@@ -17,9 +17,14 @@ RUN pip install --no-cache-dir -r requirements.txt gunicorn
 COPY . .
 
 # Create volume mount points so they have the correct permissions
-RUN mkdir -p /app/static/photos && chmod 777 /app/static/photos
+RUN mkdir -p /app/static/photos /app/static/signatures /app/logs /app/backups \
+    && chmod 755 /app/static/photos /app/static/signatures /app/logs /app/backups
 
 EXPOSE 8000
 
-# Run with Gunicorn instead of Flask development server
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "--threads", "2", "--timeout", "60", "app:app"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')" || exit 1
+
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "--threads", "2", \
+     "--timeout", "60", "--access-logfile", "/app/logs/access.log", \
+     "--error-logfile", "/app/logs/error.log", "app:app"]

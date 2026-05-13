@@ -41,6 +41,27 @@ ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic'}
 
 app.jinja_env.filters['from_json'] = json.loads
 
+# ── File logging with rotation ─────────────────────────────────────────────────
+import logging
+from logging.handlers import RotatingFileHandler
+
+_log_dir = os.path.join(os.path.dirname(__file__), 'logs')
+os.makedirs(_log_dir, exist_ok=True)
+_handler = RotatingFileHandler(
+    os.path.join(_log_dir, 'tracko.log'),
+    maxBytes=5 * 1024 * 1024,  # 5 MB per file
+    backupCount=7,
+    encoding='utf-8',
+)
+_handler.setFormatter(logging.Formatter(
+    '[%(asctime)s] %(levelname)s %(name)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+))
+_handler.setLevel(logging.WARNING)
+app.logger.addHandler(_handler)
+app.logger.setLevel(logging.WARNING)
+logging.getLogger('werkzeug').addHandler(_handler)
+
 DB      = os.path.join(os.path.dirname(__file__), "inventory.db")
 UPLOADS = os.path.join(os.path.dirname(__file__), "static", "photos")
 os.makedirs(UPLOADS, exist_ok=True)
@@ -272,6 +293,22 @@ def init_db():
             created_by TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         
+        # ─── Indexes (idempotent) ─────────────────────────────────────────────
+        db.executescript("""
+            CREATE INDEX IF NOT EXISTS idx_items_employee   ON items(employee);
+            CREATE INDEX IF NOT EXISTS idx_items_employee_id ON items(employee_id);
+            CREATE INDEX IF NOT EXISTS idx_items_room       ON items(room);
+            CREATE INDEX IF NOT EXISTS idx_items_category   ON items(category);
+            CREATE INDEX IF NOT EXISTS idx_items_status     ON items(status);
+            CREATE INDEX IF NOT EXISTS idx_items_condition  ON items(condition);
+            CREATE INDEX IF NOT EXISTS idx_history_item_id  ON history(item_id);
+            CREATE INDEX IF NOT EXISTS idx_history_ts       ON history(ts);
+            CREATE INDEX IF NOT EXISTS idx_users_email      ON users(email);
+            CREATE INDEX IF NOT EXISTS idx_users_active     ON users(active);
+            CREATE INDEX IF NOT EXISTS idx_maintenance_item ON maintenance(item_id);
+            CREATE INDEX IF NOT EXISTS idx_maintenance_status ON maintenance(status);
+        """)
+
         # Migrations / Column updates
         add_col(db, "items", "employee_id", "INTEGER")
         add_col(db, "items", "photo", "TEXT")
@@ -285,32 +322,63 @@ def init_db():
                        ("Администратор","admin@tracko.uz",pw,"superadmin"))
             print("  👤  admin@tracko.uz / admin123")
 
+_FIELD_LIMITS = {
+    "model": 200, "serial_num": 100, "place": 200, "room": 100,
+    "employee": 150, "notes": 2000, "name": 150, "email": 254,
+    "description": 3000, "resolution": 2000,
+}
+
+def _trunc(d, key, default=""):
+    """Return field value truncated to its max allowed length."""
+    val = (d.get(key) or default)
+    limit = _FIELD_LIMITS.get(key, 500)
+    return str(val)[:limit]
+
+def _db_error(e, context=""):
+    """Log full error internally, return safe generic message to client."""
+    app.logger.error(f"DB error [{context}]: {e}", exc_info=True)
+    return jsonify({"error": "Внутренняя ошибка сервера. Попробуйте позже."}), 500
+
 def log_h(db, item_id, action, field=None, old_val=None, new_val=None, uid=None, uname=None):
     db.execute("INSERT INTO history (item_id,user_id,user_name,action,field,old_val,new_val) VALUES (?,?,?,?,?,?,?)",
                (item_id,uid,uname,action,field,old_val,new_val))
 
 # ─── AUTH ─────────────────────────────────────────────────────────────────────
-_login_attempts = {}  # ip -> {count, locked_until}
+# Rate limiting backed by login_log table — survives restarts and multiple workers
 
 def check_rate_limit(ip):
-    """Returns (allowed, seconds_left)"""
+    """Returns (allowed, seconds_left). Uses DB so it persists across restarts."""
     now = time.time()
-    data = _login_attempts.get(ip, {"count": 0, "locked_until": 0})
-    if now < data["locked_until"]:
-        return False, int(data["locked_until"] - now)
+    window = now - 600  # 10-minute window
+    with get_db() as db:
+        row = db.execute(
+            "SELECT COUNT(*) as cnt FROM login_log WHERE ip=? AND success=0 AND ts > datetime(?, 'unixepoch')",
+            (ip, window)
+        ).fetchone()
+        failures = row["cnt"] if row else 0
+    if failures >= 5:
+        # Find when the 5th failure happened to calculate lockout end
+        with get_db() as db:
+            first_fail = db.execute(
+                "SELECT ts FROM login_log WHERE ip=? AND success=0 AND ts > datetime(?, 'unixepoch') ORDER BY ts ASC LIMIT 1 OFFSET 4",
+                (ip, window)
+            ).fetchone()
+        if first_fail:
+            from datetime import datetime as _dt
+            try:
+                fail_ts = _dt.strptime(first_fail["ts"], "%Y-%m-%d %H:%M:%S").timestamp()
+                locked_until = fail_ts + 300
+                if now < locked_until:
+                    return False, int(locked_until - now)
+            except Exception:
+                pass
     return True, 0
 
 def record_failed_login(ip):
-    now = time.time()
-    data = _login_attempts.get(ip, {"count": 0, "locked_until": 0})
-    data["count"] = data.get("count", 0) + 1
-    if data["count"] >= 5:
-        data["locked_until"] = now + 300  # 5 min
-        data["count"] = 0
-    _login_attempts[ip] = data
+    pass  # Recorded in login_log by api_login — no separate store needed
 
 def clear_failed_login(ip):
-    _login_attempts.pop(ip, None)
+    pass  # Not needed — window-based check auto-clears after 10 min
 def make_token(u):
     return pyjwt.encode({"sub":u["id"],"role":u["role"],"name":u["name"],
                           "tv": u.get("token_version",0),
@@ -337,7 +405,7 @@ def get_current_user():
                 return None
         return u
     except Exception as e:
-        app.logger.error(f"Save photo error: {e}")
+        app.logger.error(f"Auth error: {e}")
         return None
 
 def login_required(f):
@@ -390,6 +458,65 @@ def _save_signature(base64_str, prefix):
         app.logger.error(f"Save signature error: {e}")
         return None
 
+# ── CSRF Protection (Double Submit Cookie) ─────────────────────────────────────
+import hmac as _hmac
+
+_CSRF_SKIP_PATHS = {'/api/auth/login', '/api/health'}
+
+@app.before_request
+def enforce_csrf():
+    """Validate CSRF token on all authenticated mutating requests."""
+    if request.method not in ('POST', 'PUT', 'DELETE', 'PATCH'):
+        return None
+    if request.path in _CSRF_SKIP_PATHS:
+        return None
+    if not request.cookies.get('token'):
+        return None  # unauthenticated — auth decorator handles it
+    header_token = request.headers.get('X-CSRF-Token', '')
+    cookie_token = request.cookies.get('csrf_token', '')
+    if not header_token or not cookie_token:
+        app.logger.warning(f"CSRF token missing: {request.method} {request.path} from {request.remote_addr}")
+        return jsonify({"error": "Запрос отклонён: CSRF токен отсутствует"}), 403
+    if not _hmac.compare_digest(header_token, cookie_token):
+        app.logger.warning(f"CSRF mismatch: {request.method} {request.path} from {request.remote_addr}")
+        return jsonify({"error": "Запрос отклонён: недействительный токен безопасности"}), 403
+
+# ── Per-endpoint rate limiter ───────────────────────────────────────────────────
+_rate_buckets: dict = {}
+
+def rate_limit(max_calls: int, window_sec: int = 60):
+    """Decorator: max_calls per window_sec per IP. Thread-safe for single-process."""
+    def decorator(f):
+        bucket_key = f.__name__
+        @wraps(f)
+        def dec(*a, **kw):
+            ip  = request.remote_addr or 'unknown'
+            key = f"{bucket_key}:{ip}"
+            now = time.time()
+            cutoff = now - window_sec
+            calls  = [t for t in _rate_buckets.get(key, []) if t > cutoff]
+            if len(calls) >= max_calls:
+                retry_after = int(window_sec - (now - calls[0]))
+                return jsonify({"error": f"Слишком много запросов. Повторите через {retry_after} сек."}), 429
+            calls.append(now)
+            _rate_buckets[key] = calls
+            return f(*a, **kw)
+        return dec
+    return decorator
+
+def _attach_csrf_cookie(resp):
+    """Generate and attach a new CSRF token as a readable (non-HttpOnly) cookie."""
+    token = secrets.token_hex(32)
+    resp.set_cookie(
+        'csrf_token', token,
+        httponly=False,       # must be readable by JavaScript
+        samesite='Strict',
+        secure=SECURE_COOKIES,
+        max_age=JWT_EXPIRY,
+        path='/'
+    )
+    return resp
+
 def qr_png(url):
     qr=qrcode.QRCode(version=1,error_correction=qrcode.constants.ERROR_CORRECT_M,box_size=8,border=2)
     qr.add_data(url); qr.make(fit=True)
@@ -414,36 +541,27 @@ def bhost():
         return h.replace("localhost", lan).replace("127.0.0.1", lan)
     return h
 
-@app.route('/force-admin')
-def force_admin():
-    res = make_response(redirect('/login'))
-    res.set_cookie('token', '', expires=0)
-    return res
-
 # ── Security Headers ───────────────────────────────────────────────────────────
 @app.after_request
 def add_security_headers(resp):
     resp.headers['X-Content-Type-Options'] = 'nosniff'
     resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    resp.headers['X-Content-Type-Options'] = 'nosniff'
-    resp.headers['X-XSS-Protection'] = '1; mode=block'
     resp.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    resp.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), payment=()'
     resp.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: blob:; "
-        "connect-src 'self';"
+        "connect-src 'self'; "
+        "frame-ancestors 'self';"
     )
-    resp.headers['X-XSS-Protection'] = '1; mode=block'
-    resp.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    resp.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), payment=()'
-    # Cache control for API
+    if SECURE_COOKIES:
+        resp.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
     if request.path.startswith('/api/'):
         resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
         resp.headers['Pragma'] = 'no-cache'
-    # Remove server version info
     resp.headers.pop('Server', None)
     return resp
 
@@ -469,9 +587,8 @@ def too_large(e):
 @app.errorhandler(500)
 def server_error(e):
     import traceback
-    traceback.print_exc()
-    app.logger.error(f'500 error: {e}')
-    if request.is_json or request.path.startswith('/api/'):
+    app.logger.error(f'500 error: {e}\n{traceback.format_exc()}')
+    if request.path.startswith('/api/'):
         return jsonify({'error': 'Внутренняя ошибка сервера'}), 500
     return redirect("/dashboard")
 
@@ -520,6 +637,7 @@ def api_login():
         secure=SECURE_COOKIES,
         max_age=JWT_EXPIRY
     )
+    _attach_csrf_cookie(resp)
     return resp
 
 @app.route("/api/auth/logout",methods=["POST"])
@@ -530,6 +648,7 @@ def api_logout():
         db.execute("UPDATE users SET token_version=COALESCE(token_version,0)+1 WHERE id=?", (u["id"],))
     resp = make_response(jsonify({"ok": True}))
     resp.delete_cookie("token")
+    resp.delete_cookie("csrf_token")
     return resp
 
 @app.route("/api/auth/me")
@@ -716,39 +835,46 @@ def get_users():
 
 @app.route("/api/users",methods=["POST"])
 @roles_required("superadmin","aho","director")
+@rate_limit(max_calls=20, window_sec=60)
 def create_user():
-    d=request.json
+    d = request.json or {}
     if not d.get("email") or not d.get("name") or not d.get("password"):
-        return jsonify({"error":"Заполни все поля"}),400
+        return jsonify({"error": "Заполни все поля"}), 400
     pw_raw = d["password"]
     if len(pw_raw) < 8:
-        return jsonify({"error":"Пароль минимум 8 символов"}),400
+        return jsonify({"error": "Пароль минимум 8 символов"}), 400
+    if not any(c.isdigit() for c in pw_raw):
+        return jsonify({"error": "Пароль должен содержать хотя бы одну цифру"}), 400
+    if not any(c.isalpha() for c in pw_raw):
+        return jsonify({"error": "Пароль должен содержать хотя бы одну букву"}), 400
+    role = d.get("role", "employee")
+    if role not in ROLES:
+        role = next((rk for rk, rv in ROLES.items() if rv["label"] == role), "employee")
     try:
-        pw=bcrypt.hashpw(pw_raw.encode(),bcrypt.gensalt()).decode()
-        role = d.get("role", "employee")
-        if role not in ROLES:
-            for rk, rv in ROLES.items():
-                if rv["label"] == role:
-                    role = rk; break
-            else: role = "employee"
-
+        pw = bcrypt.hashpw(pw_raw.encode(), bcrypt.gensalt()).decode()
         with get_db() as db:
-            cur = db.execute("""INSERT INTO users (name,email,password_hash,role,department,force_password_change)
-                          VALUES (?,?,?,?,?,1)""",
-                       (d["name"], d["email"].lower(), pw, role, d.get("department", "")))
+            cur = db.execute(
+                "INSERT INTO users (name,email,password_hash,role,department,force_password_change) VALUES (?,?,?,?,?,1)",
+                (_trunc(d, "name"), d["email"].lower()[:254], pw, role, _trunc(d, "department")),
+            )
             new_id = cur.lastrowid
-        return jsonify({"ok":True, "id": new_id})
+        return jsonify({"ok": True, "id": new_id})
     except sqlite3.IntegrityError:
-        return jsonify({"error":"Email уже используется"}),400
+        return jsonify({"error": "Email уже используется"}), 400
     except Exception as e:
-        return jsonify({"error":str(e)}),500
+        return _db_error(e, "create_user")
 
 @app.route("/api/users/<int:uid>",methods=["PUT"])
 @roles_required("superadmin","aho","director")
 def update_user(uid):
     d=request.json or {}; u=request.current_user
-    if u["role"]=="aho" and d.get("role")=="superadmin":
-        return jsonify({"error":"Нет прав"}),403
+    # Role escalation guard: cannot assign role with more privileges than your own
+    _ROLE_RANK = {"employee":0,"viewer":0,"hr":1,"auditor":1,"accountant":1,
+                  "deputy":2,"aho":3,"director":3,"superadmin":4}
+    my_rank = _ROLE_RANK.get(u["role"], 0)
+    target_rank = _ROLE_RANK.get(d.get("role",""), 0)
+    if d.get("role") and target_rank >= my_rank and u["role"] != "superadmin":
+        return jsonify({"error":"Нельзя назначить роль выше или равную своей"}),403
     ALLOWED = frozenset({"name","email","role","active","department","doc_role",
                          "telegram_chat_id","expires_at","avatar_color"})
     sets=[]; vals=[]
@@ -767,7 +893,7 @@ def update_user(uid):
         except sqlite3.IntegrityError:
             return jsonify({"error": "Email уже занят другим пользователем"}), 400
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return _db_error(e, "update_user")
     return jsonify({"ok":True})
 
 @app.route("/api/users/<int:uid>",methods=["DELETE"])
@@ -787,7 +913,7 @@ def get_users_simple():
     return jsonify([dict(r) for r in rows])
 
 @app.route("/api/items/<inv_num>/reassign", methods=["POST"])
-@roles_required("superadmin", "aho", "hr")
+@roles_required("superadmin", "aho")
 def reassign_item(inv_num):
     """Quickly reassign an asset to another employee."""
     d = request.json
@@ -838,6 +964,55 @@ def report_maintenance(inv_num):
         
     return jsonify({"ok": True})
 
+@app.route("/api/items/<path:inv_num>/writeoff", methods=["POST"])
+@roles_required("superadmin", "aho", "director")
+def writeoff_item(inv_num):
+    """Write off an asset: sets condition=Списано, clears employee, logs with act details."""
+    d = request.json or {}
+    reason = (d.get("reason") or "").strip()
+    if not reason:
+        return jsonify({"error": "Укажите причину списания"}), 400
+    act_num = (d.get("act_num") or "").strip()
+    authorized_by = (d.get("authorized_by") or "").strip()
+    u = request.current_user
+    with get_db() as db:
+        item = db.execute("SELECT * FROM items WHERE inv_num=?", (inv_num,)).fetchone()
+        if not item: return jsonify({"error": "Актив не найден"}), 404
+        if item["condition"] == "Списано":
+            return jsonify({"error": "Актив уже списан"}), 400
+        old_emp = item["employee"] or "—"
+        db.execute(
+            "UPDATE items SET condition='Списано', status='Свободно', employee='—', employee_id=NULL WHERE inv_num=?",
+            (inv_num,)
+        )
+        note = f"Акт: {act_num or '—'} | Причина: {reason} | Утверждено: {authorized_by or '—'}"
+        log_h(db, item["id"], f"Списание", "condition", item["condition"], "Списано", u["id"], u["name"])
+        log_h(db, item["id"], note, uid=u["id"], uname=u["name"])
+        # Store writeoff details in notes for act printing
+        existing_notes = item["notes"] or ""
+        wo_stamp = f"[СПИСАНИЕ {date.today().isoformat()}] Акт: {act_num or '—'}, Причина: {reason}, Утв.: {authorized_by or '—'}, Исполнитель: {u['name']}"
+        db.execute("UPDATE items SET notes=? WHERE inv_num=?",
+                   ((wo_stamp + "\n" + existing_notes).strip()[:2000], inv_num))
+    return jsonify({"ok": True})
+
+@app.route("/asset/<path:inv_num>/writeoff-act")
+@roles_required("superadmin", "aho", "director", "accountant", "auditor")
+def writeoff_act_page(inv_num):
+    """Printable write-off act for a written-off asset."""
+    with get_db() as db:
+        item = db.execute("SELECT * FROM items WHERE inv_num=?", (inv_num,)).fetchone()
+    if not item: abort(404)
+    item = dict(item)
+    # Parse write-off metadata from notes
+    wo_info = {"act_num": "—", "reason": "—", "authorized_by": "—", "date": "—", "executor": "—"}
+    notes = item.get("notes") or ""
+    import re
+    m = re.search(r'\[СПИСАНИЕ (\d{4}-\d{2}-\d{2})\] Акт: (.+?), Причина: (.+?), Утв\.: (.+?), Исполнитель: (.+?)$', notes, re.MULTILINE)
+    if m:
+        wo_info = {"date": m.group(1), "act_num": m.group(2), "reason": m.group(3),
+                   "authorized_by": m.group(4), "executor": m.group(5)}
+    return render_template("writeoff_act.html", item=item, wo=wo_info, user=request.current_user, host=bhost())
+
 @app.route("/api/items")
 @login_required
 def get_items():
@@ -864,12 +1039,28 @@ def add_item():
     
     u = request.current_user
     cat = d.get("category", "Другое")
+    if cat not in CATEGORIES:
+        return jsonify({"error": f"Недопустимая категория: {cat}"}), 400
     inv = next_inv(cat)
-    
+
     emp = d.get("employee", "—")
     default_status = "Занято" if emp != "—" else "Свободно"
     status = d.get("status", default_status)
-    
+    if status not in STATUSES:
+        return jsonify({"error": f"Недопустимый статус: {status}"}), 400
+    condition = d.get("condition", "Хорошее")
+    if condition not in CONDITIONS:
+        return jsonify({"error": f"Недопустимое состояние: {condition}"}), 400
+
+    # Validate numeric fields
+    purchase_price = None
+    if d.get("purchase_price"):
+        try:
+            purchase_price = float(d["purchase_price"])
+            if purchase_price < 0: raise ValueError
+        except (ValueError, TypeError):
+            return jsonify({"error": "Стоимость должна быть положительным числом"}), 400
+
     photo_name = None
     if "photo" in request.files:
         f = request.files["photo"]
@@ -883,16 +1074,16 @@ def add_item():
         with get_db() as db:
             cur = db.execute(
                 "INSERT INTO items (place,inv_num,category,model,serial_num,room,employee,employee_id,status,condition,check_date,notes,photo,purchase_price,purchase_date,supplier,warranty_until) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (d.get("place",""), inv, cat, d.get("model",""), d.get("serial_num","—"), d.get("room",""),
-                 emp, d.get("employee_id"), status,
-                 d.get("condition","Хорошее"), date.today().isoformat(), d.get("notes",""), photo_name,
-                 d.get("purchase_price"), d.get("purchase_date"), d.get("supplier"), d.get("warranty_until"))
+                (_trunc(d,"place"), inv, cat, _trunc(d,"model"), _trunc(d,"serial_num","—"), _trunc(d,"room"),
+                 emp[:150], d.get("employee_id"), status,
+                 condition, date.today().isoformat(), _trunc(d,"notes"), photo_name,
+                 purchase_price, d.get("purchase_date"), d.get("supplier"), d.get("warranty_until"))
             )
             item_id = cur.lastrowid
             log_h(db, item_id, "Добавлен", uid=u["id"], uname=u["name"])
     except Exception as e:
-        return jsonify({"error": str(e)}),500
-    
+        return _db_error(e, "add_item")
+
     return jsonify({"ok":True, "id": item_id, "inv_num":inv})
 
 @app.route("/api/items/bulk",methods=["POST"])
@@ -902,6 +1093,8 @@ def add_bulk():
     emp = d.get("employee", "—")
     default_status = "Занято" if emp != "—" else "Свободно"
     status = d.get("status", default_status)
+    if status not in STATUSES:
+        return jsonify({"error": f"Недопустимый статус: {status}"}), 400
     try:
         with get_db() as db:
             for item in d.get("items",[]):
@@ -913,7 +1106,7 @@ def add_bulk():
                 log_h(db,cur.lastrowid,"Добавлен (пакетно)",uid=u["id"],uname=u["name"])
                 inv_nums.append(inv)
     except Exception as e:
-        return jsonify({"error": str(e)}),500
+        return _db_error(e, "add_bulk")
     return jsonify({"ok":True,"inv_nums":inv_nums,"count":len(inv_nums)})
 
 @app.route("/api/items/<int:iid>",methods=["PUT"])
@@ -926,8 +1119,15 @@ def update_item(iid):
         if not item or (str(item["employee_id"])!=str(u["id"]) and item["employee"]!=u["name"]):
             return jsonify({"error":"Нет доступа"}),403
         d={k:v for k,v in d.items() if k in ("condition","notes")}
-    elif u["role"] not in ("superadmin","aho"):
+    elif not ROLES.get(u["role"],{}).get("can_edit"):
         return jsonify({"error":"Нет доступа"}),403
+    # Validate enum fields
+    if "status" in d and d["status"] not in STATUSES:
+        return jsonify({"error": f"Недопустимый статус: {d['status']}"}), 400
+    if "condition" in d and d["condition"] not in CONDITIONS:
+        return jsonify({"error": f"Недопустимое состояние: {d['condition']}"}), 400
+    if "category" in d and d["category"] not in CATEGORIES:
+        return jsonify({"error": f"Недопустимая категория: {d['category']}"}), 400
     fields=["place","category","model","serial_num","room","employee","employee_id","status","condition","notes"]
     with get_db() as db:
         old=dict(db.execute("SELECT * FROM items WHERE id=?",(iid,)).fetchone() or {})
@@ -1063,6 +1263,24 @@ def confirm_issuance(iid):
         db.execute("UPDATE issuances SET status='confirmed',confirmed_at=CURRENT_TIMESTAMP WHERE id=?",(iid,))
     return jsonify({"ok":True})
 
+@app.route("/issuances/<int:iid>/print-act")
+@roles_required("superadmin", "aho", "hr", "director")
+def print_issuance_act(iid):
+    """Printable transfer act (Акт приёма-передачи) for an issuance."""
+    with get_db() as db:
+        iss = db.execute("SELECT * FROM issuances WHERE id=?", (iid,)).fetchone()
+        if not iss: abort(404)
+        iss = dict(iss)
+        item_ids = json.loads(iss.get("items_json") or "[]")
+        items = []
+        for item_id in item_ids:
+            row = db.execute("SELECT * FROM items WHERE id=?", (item_id,)).fetchone()
+            if row: items.append(dict(row))
+        emp = db.execute("SELECT * FROM users WHERE id=?", (iss["employee_id"],)).fetchone()
+        emp = dict(emp) if emp else {}
+    return render_template("transfer_act.html", iss=iss, items=items, emp=emp,
+                           user=request.current_user, host=bhost())
+
 # ─── HR: RETURNS ──────────────────────────────────────────────────────────────
 @app.route("/api/returns",methods=["GET"])
 @roles_required("superadmin","aho","hr")
@@ -1192,6 +1410,19 @@ def export_excel():
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 # ─── DISMISSAL WORKFLOW ───────────────────────────────────────────────────────
+@app.route("/admin/issuances")
+@roles_required("superadmin", "aho", "hr", "director")
+def admin_issuances_page():
+    with get_db() as db:
+        rows = db.execute("SELECT * FROM issuances ORDER BY created_at DESC LIMIT 200").fetchall()
+        issuances = []
+        for r in rows:
+            d = dict(r)
+            item_ids = json.loads(d.get("items_json") or "[]")
+            d["item_count"] = len(item_ids)
+            issuances.append(d)
+    return render_template("admin_issuances.html", issuances=issuances, user=request.current_user, roles=ROLES)
+
 @app.route("/admin/dismissals")
 @roles_required("superadmin","aho","hr")
 def admin_dismissals_page():
@@ -1233,7 +1464,11 @@ def create_dismissal():
             (emp_id, emp["name"], emp["email"], u["id"], u["name"], items_json, d.get("notes",""))
         )
         dis_id = cur.lastrowid
-    return jsonify({"ok": True, "dismissal_id": dis_id})
+    import hashlib
+    token = hashlib.sha256(
+        f"{emp['email']}{dis_id}{app.config['SECRET_KEY']}".encode()
+    ).hexdigest()[:16]
+    return jsonify({"ok": True, "dismissal_id": dis_id, "access_token": token})
 
 @app.route("/api/dismissals/<int:did>/aho_accept", methods=["POST"])
 @roles_required("superadmin","aho")
@@ -1332,12 +1567,22 @@ def dismissals_hr_finalize(did):
 
 @app.route("/dismissal/<int:did>")
 def dismissal_page(did):
-    """Public page for employee to submit photos (no auth, uses dismissal token)"""
+    """Public page for employee to submit photos — guarded by employee email token."""
+    token = request.args.get("t", "")
     with get_db() as db:
         dis = db.execute("SELECT * FROM dismissals WHERE id=?", (did,)).fetchone()
     if not dis:
         abort(404)
     dis = dict(dis)
+    # Guard: require either a valid session OR the employee's email hash as ?t= token
+    u = get_current_user()
+    if not u:
+        import hashlib
+        expected = hashlib.sha256(
+            f"{dis['employee_email']}{dis['id']}{app.config['SECRET_KEY']}".encode()
+        ).hexdigest()[:16]
+        if not token or token != expected:
+            return render_template("login.html"), 403
     dis["items"] = json.loads(dis["items_json"] or "[]")
     dis["photos"] = json.loads(dis["photos_json"] or "{}")
     return render_template("dismissal.html", dis=dis)
@@ -1379,6 +1624,12 @@ def submit_dismissal_photos(did):
                    (json.dumps(photos_data), emp_sig_path, did))
     return jsonify({"ok": True})
 
+def _dismissal_token(dis):
+    import hashlib
+    return hashlib.sha256(
+        f"{dis.get('employee_email','')}{dis['id']}{app.config['SECRET_KEY']}".encode()
+    ).hexdigest()[:16]
+
 @app.route("/api/dismissals/<int:did>")
 @login_required
 def get_dismissal(did):
@@ -1389,6 +1640,7 @@ def get_dismissal(did):
     dis = dict(dis)
     dis["items"] = json.loads(dis["items_json"] or "[]")
     dis["photos_data"] = json.loads(dis["photos_json"] or "{}")
+    dis["access_token"] = _dismissal_token(dis)
     return jsonify(dis)
 
 # Redundant confirm_dismissal removed in favor of multi-stage aho_accept/hr_finalize
@@ -1479,6 +1731,7 @@ def profile_page():
 
 @app.route("/api/profile", methods=["PUT"])
 @login_required
+@rate_limit(max_calls=10, window_sec=60)
 def update_profile():
     u = request.current_user
     d = request.json or {}
@@ -1985,9 +2238,8 @@ def assign_item(iid):
 
 # ─── HEALTH ──────────────────────────────────────────────────────────────────
 @app.route("/api/health")
-@login_required
 def health():
-    """Health check — requires auth to prevent info disclosure"""
+    """Public health check for monitoring / uptime tools."""
     try:
         with get_db() as db:
             db.execute("SELECT 1").fetchone()
@@ -2099,7 +2351,8 @@ def webhook_test():
         urllib.request.urlopen(req, timeout=5)
         return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        app.logger.warning(f"Webhook test failed: {e}")
+        return jsonify({"error": "Webhook не ответил или недоступен"}), 400
 
 
 @app.route("/api/integrations/uzinfocom/sync", methods=["POST"])
@@ -3393,14 +3646,87 @@ def get_notifications():
     return jsonify({"total": total, "items": notifs})
 
 
+@app.route("/api/alerts")
+@roles_required("superadmin", "aho", "director", "deputy", "accountant", "auditor")
+def get_alerts():
+    """Proactive AHO alerts: warranty expiring, long repairs, pending requests, unverified assets."""
+    today = date.today()
+    soon = (today + timedelta(days=30)).isoformat()
+    old_repair = (today - timedelta(days=30)).isoformat()
+    alerts = []
+    with get_db() as db:
+        # Warranty expiring in 30 days
+        w_rows = db.execute(
+            "SELECT inv_num, category, model, warranty_until FROM items "
+            "WHERE warranty_until IS NOT NULL AND warranty_until <= ? AND warranty_until >= ? "
+            "AND condition != 'Списано' ORDER BY warranty_until ASC LIMIT 10",
+            (soon, today.isoformat())
+        ).fetchall()
+        if w_rows:
+            alerts.append({
+                "type": "warranty",
+                "level": "warning",
+                "title": f"Гарантия истекает в течение 30 дней",
+                "count": len(w_rows),
+                "items": [{"inv_num": r["inv_num"], "category": r["category"],
+                           "model": r["model"] or "", "date": r["warranty_until"]} for r in w_rows]
+            })
+        # Items in repair for over 30 days
+        r_rows = db.execute(
+            "SELECT i.inv_num, i.category, i.model, m.created_at "
+            "FROM maintenance m JOIN items i ON i.id = m.item_id "
+            "WHERE m.status='pending' AND m.created_at <= ? "
+            "ORDER BY m.created_at ASC LIMIT 10",
+            (old_repair,)
+        ).fetchall()
+        if r_rows:
+            alerts.append({
+                "type": "repair",
+                "level": "error",
+                "title": f"В ремонте более 30 дней",
+                "count": len(r_rows),
+                "items": [{"inv_num": r["inv_num"], "category": r["category"],
+                           "model": r["model"] or "", "since": r["created_at"][:10]} for r in r_rows]
+            })
+        # Pending asset requests
+        req_count = db.execute("SELECT COUNT(*) FROM asset_requests WHERE status='pending'").fetchone()[0]
+        if req_count:
+            alerts.append({
+                "type": "requests",
+                "level": "info",
+                "title": f"Заявки на оборудование",
+                "count": req_count,
+                "items": []
+            })
+        # Assets not verified in 180+ days
+        unverif = db.execute(
+            "SELECT COUNT(*) FROM items WHERE (check_date IS NULL OR check_date < date('now','-180 days')) "
+            "AND condition != 'Списано'"
+        ).fetchone()[0]
+        if unverif > 0:
+            alerts.append({
+                "type": "audit",
+                "level": "warning" if unverif < 20 else "error",
+                "title": f"Активы без проверки 180+ дней",
+                "count": unverif,
+                "items": []
+            })
+        # Pending dismissals
+        dis_count = db.execute(
+            "SELECT COUNT(*) FROM dismissals WHERE status IN ('pending_aho','pending','photos_submitted')"
+        ).fetchone()[0]
+        if dis_count:
+            alerts.append({
+                "type": "dismissal",
+                "level": "warning",
+                "title": f"Незавершённые увольнения",
+                "count": dis_count,
+                "items": []
+            })
+    return jsonify({"alerts": alerts, "total": sum(a["count"] for a in alerts)})
 
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template('index.html'), 404
 
-@app.errorhandler(500)
-def internal_error(e):
-    return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+# Duplicate 404 handler removed — first one at top of file is authoritative
 
 # ══════════════════════════════════════════════════════════
 # MISSING PAGE ROUTES
@@ -3432,6 +3758,16 @@ def analytics_page():
 def inventory_page():
     u = request.current_user
     return render_template("inventory.html", user=u, current_user=u,
+        role_info=ROLES.get(u["role"],{}), roles=ROLES)
+
+@app.route("/inventory/<int:sid>")
+@login_required
+def inventory_session_page(sid):
+    u = request.current_user
+    with get_db() as db:
+        session = db.execute("SELECT * FROM inventory_sessions WHERE id=?", (sid,)).fetchone()
+    if not session: abort(404)
+    return render_template("inventory_session.html", session=dict(session), user=u, current_user=u,
         role_info=ROLES.get(u["role"],{}), roles=ROLES)
 
 @app.route("/security")

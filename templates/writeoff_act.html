@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Акт списания {{ item.inv_num }}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Arial',sans-serif;background:#fff;color:#000;padding:20mm 20mm 20mm 25mm;font-size:12pt;}
+@media print{body{padding:10mm 10mm 10mm 15mm;} .no-print{display:none!important;}}
+.header{text-align:center;margin-bottom:20px;}
+.header h1{font-size:15pt;font-weight:bold;text-transform:uppercase;letter-spacing:1px;}
+.header p{font-size:10pt;color:#444;margin-top:4px;}
+.meta-table{width:100%;border-collapse:collapse;margin:16px 0;}
+.meta-table td{padding:6px 10px;border:1px solid #bbb;font-size:11pt;}
+.meta-table td:first-child{font-weight:bold;width:40%;background:#f5f5f5;}
+.section-title{font-size:11pt;font-weight:bold;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.5px;color:#444;}
+.items-table{width:100%;border-collapse:collapse;font-size:10pt;}
+.items-table th{background:#1E3A5F;color:#fff;padding:8px 10px;text-align:left;font-weight:bold;}
+.items-table td{padding:7px 10px;border-bottom:1px solid #ddd;}
+.items-table tr:nth-child(even) td{background:#f9f9f9;}
+.sign-section{margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:40px;}
+.sign-block{border-top:1.5px solid #000;padding-top:8px;}
+.sign-block .role{font-size:10pt;font-weight:bold;}
+.sign-block .line{margin-top:28px;border-top:1px solid #555;font-size:9pt;color:#555;padding-top:4px;}
+.footer-note{margin-top:24px;font-size:9pt;color:#777;border-top:1px solid #ddd;padding-top:10px;}
+.stamp{width:100px;height:100px;border:3px solid #ccc;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:10pt;text-align:center;margin:16px auto;}
+.print-btn{position:fixed;bottom:24px;right:24px;padding:14px 28px;background:#007AFF;color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,122,255,.4);}
+</style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">Распечатать акт</button>
+
+<div class="header">
+  <h1>Акт списания материальных ценностей</h1>
+  <p>{{ wo.act_num }}</p>
+</div>
+
+<table class="meta-table">
+  <tr><td>Дата составления:</td><td>{{ wo.date }}</td></tr>
+  <tr><td>Основание:</td><td>{{ wo.reason }}</td></tr>
+  <tr><td>Утверждено:</td><td>{{ wo.authorized_by }}</td></tr>
+  <tr><td>Ответственное лицо:</td><td>{{ wo.executor }}</td></tr>
+</table>
+
+<div class="section-title">Списываемый актив</div>
+<table class="items-table">
+  <thead>
+    <tr>
+      <th>Инв. №</th>
+      <th>Наименование</th>
+      <th>Модель</th>
+      <th>Серийный №</th>
+      <th>Кабинет</th>
+      <th>Состояние</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="font-family:monospace;font-weight:bold;">{{ item.inv_num }}</td>
+      <td>{{ item.category }}</td>
+      <td>{{ item.model or '—' }}</td>
+      <td style="font-family:monospace;font-size:10px;">{{ item.serial_num or '—' }}</td>
+      <td>{{ item.room }}</td>
+      <td>Списано</td>
+    </tr>
+  </tbody>
+</table>
+
+{% if item.purchase_price %}
+<table class="meta-table" style="margin-top:12px;">
+  <tr><td>Первоначальная стоимость:</td><td>{{ item.purchase_price }}</td></tr>
+  {% if item.purchase_date %}<tr><td>Дата приобретения:</td><td>{{ item.purchase_date }}</td></tr>{% endif %}
+  {% if item.supplier %}<tr><td>Поставщик:</td><td>{{ item.supplier }}</td></tr>{% endif %}
+</table>
+{% endif %}
+
+<div class="sign-section" style="margin-top:40px;">
+  <div class="sign-block">
+    <div class="role">Руководитель АХО / ИТ</div>
+    <div class="line">подпись / расшифровка</div>
+  </div>
+  <div class="sign-block">
+    <div class="role">Бухгалтер</div>
+    <div class="line">подпись / расшифровка</div>
+  </div>
+  <div class="sign-block" style="margin-top:28px;">
+    <div class="role">Директор / Утверждающий</div>
+    <div class="line">подпись / расшифровка</div>
+  </div>
+  <div class="sign-block" style="margin-top:28px;display:flex;align-items:center;justify-content:center;">
+    <div class="stamp">М.П.</div>
+  </div>
+</div>
+
+<div class="footer-note">
+  Акт составлен в системе Tracko · {{ host }} · Инв. № {{ item.inv_num }}
+</div>
+</body>
+</html>

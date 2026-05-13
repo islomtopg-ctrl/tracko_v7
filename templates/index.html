@@ -804,6 +804,12 @@
         </button>
         {% endif %}
         {% if current_user.role in ('superadmin', 'aho', 'hr') %}
+        <button class="sb-nav-btn" onclick="window.location='/admin/issuances'">
+          <span class="sb-nav-ico" style="background:rgba(52,199,89,.12);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2" stroke-linecap="round"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+          </span>
+          <span class="sb-nav-label">Выдачи</span>
+        </button>
         <button class="sb-nav-btn" onclick="window.location='/admin/dismissals'">
           <span class="sb-nav-ico" style="background:rgba(255,59,48,.12);">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -940,6 +946,9 @@
           </div>
         </div>
         
+        <!-- ── ALERT PANEL ── -->
+        <div id="alert-panel" style="display:none;margin-bottom:20px;"></div>
+
         <div class="charts-row fade-up-delay-2">
           <div class="chart-card">
             <div class="chart-head">По категориям</div>
@@ -1114,15 +1123,15 @@
           </table>
         </div>
         <div class="empty-state" id="empty-desk" style="display:none;">
-          <div class="empty-ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text3)"
-              stroke-width="1.5" stroke-linecap="round">
-              <rect x="2" y="20" width="20" height="2" rx="1" />
-              <rect x="6" y="13" width="4" height="7" rx=".5" />
-              <rect x="11" y="8" width="4" height="12" rx=".5" />
-              <rect x="16" y="4" width="4" height="16" rx=".5" />
-            </svg></div>
+          <div class="empty-ico">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <line x1="8" y1="11" x2="14" y2="11"/><line x1="11" y1="8" x2="11" y2="14"/>
+            </svg>
+          </div>
           <div class="empty-title">Ничего не найдено</div>
-          <div class="empty-sub">Попробуй изменить поиск или фильтр</div>
+          <div class="empty-sub">Попробуйте изменить поиск или сбросить фильтры</div>
+          <button class="empty-action" onclick="resetAllFilters()">Сбросить фильтры</button>
         </div>
         <div class="pagination" id="pager-desk" style="display:none;"></div>
       </div>
@@ -1758,6 +1767,7 @@
 
     async function refresh() {
       await Promise.all([load(), loadStats()]);
+      loadAlerts();
     }
 
     /* ── LOAD ITEMS ── */
@@ -1910,10 +1920,10 @@
       }
     }
 
-    function setEmp(name) {
+    function setEmp(name, el) {
       F.employee = F.employee === name ? '' : name;
       document.querySelectorAll('.emp-row').forEach(r => r.classList.remove('active'));
-      if (F.employee) event.currentTarget?.classList.add('active');
+      if (F.employee && el) el.classList.add('active');
       curPage = 0; load(); closeSidebar();
     }
     function setCond(val, el) {
@@ -2047,7 +2057,7 @@
           empEl.innerHTML = s.employees.length
             ? s.employees.map((e, i) => {
               const colors = ['#007AFF', '#AF52DE', '#34C759', '#FF9500', '#5856D6'];
-              return `<div class="emp-row${F.employee === e.name ? ' active' : ''}" onclick="setEmp('${e.name.replace(/'/g, "\\'")}')" style="cursor:pointer;">
+              return `<div class="emp-row${F.employee === e.name ? ' active' : ''}" onclick="setEmp('${e.name.replace(/'/g, "\\'")}',this)" style="cursor:pointer;">
               <div class="emp-ava" style="background:${colors[i % 5]};">${e.name[0].toUpperCase()}</div>
               <span class="emp-name">${e.name}</span>
               <span class="emp-cnt">${e.count}</span>
@@ -2061,6 +2071,38 @@
       } catch (e) {
         console.error("Stats load error:", e);
       }
+    }
+
+    /* ── ALERTS PANEL ── */
+    async function loadAlerts() {
+      const panel = document.getElementById('alert-panel');
+      if (!panel) return;
+      try {
+        const r = await fetch('/api/alerts');
+        if (!r.ok) return;
+        const d = await r.json();
+        if (!d.alerts || !d.alerts.length) { panel.style.display = 'none'; return; }
+        const LEVEL = { error: { bg: 'rgba(255,59,48,0.07)', border: 'rgba(255,59,48,0.25)', dot: '#FF3B30', icon: '🔴' },
+                        warning: { bg: 'rgba(255,149,0,0.07)', border: 'rgba(255,149,0,0.25)', dot: '#FF9500', icon: '🟡' },
+                        info: { bg: 'rgba(0,122,255,0.06)', border: 'rgba(0,122,255,0.2)', dot: '#007AFF', icon: '🔵' } };
+        panel.innerHTML = d.alerts.map(a => {
+          const l = LEVEL[a.level] || LEVEL.info;
+          const itemRows = a.items.length ? `<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
+            ${a.items.slice(0,5).map(it => `<div style="font-size:11px;color:var(--text2);padding:3px 0;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;"><span style="font-family:monospace;font-weight:600;">${it.inv_num}</span><span>${it.model || it.category || ''}</span><span style="color:var(--text3);">${it.date || it.since || ''}</span></div>`).join('')}
+          </div>` : '';
+          return `<div style="background:${l.bg};border:1px solid ${l.border};border-radius:16px;padding:14px 16px;margin-bottom:10px;cursor:pointer;" onclick="this.querySelector('.al-detail').style.display=this.querySelector('.al-detail').style.display==='none'?'block':'none'">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:${l.dot};flex-shrink:0;display:inline-block;"></span>
+                <span style="font-size:13px;font-weight:600;">${a.title}</span>
+              </div>
+              <span style="background:${l.dot};color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;">${a.count}</span>
+            </div>
+            <div class="al-detail" style="display:none;">${itemRows}</div>
+          </div>`;
+        }).join('');
+        panel.style.display = 'block';
+      } catch(e) { /* silently ignore — alerts are bonus UX */ }
     }
 
     async function verifyItem(id, btn) {

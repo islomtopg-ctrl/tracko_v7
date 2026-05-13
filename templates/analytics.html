@@ -1,119 +1,390 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="">
+<html lang="ru" data-theme="{{ request.cookies.get('theme','') }}">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Tracko — Аналитика</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;}
-:root{--bg:#f2f2f7;--surface:#fff;--surface2:#f2f2f7;--surface3:#e5e5ea;--border:rgba(0,0,0,.09);--border2:rgba(0,0,0,.15);--text:#1c1c1e;--text2:#6c6c70;--text3:#aeaeb2;--accent:#007AFF;--green:#34c759;--amber:#ff9f0a;--red:#ff3b30;--r:12px;--shadow:0 1px 3px rgba(0,0,0,.06);--sans:'Inter',system-ui,sans-serif;}
-[data-theme="dark"]{--bg:#000;--surface:#1c1c1e;--surface2:#2c2c2e;--surface3:#3a3a3c;--border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);--text:#f5f5f7;--text2:#98989d;--text3:#48484a;}
-html{-webkit-font-smoothing:antialiased;}body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
-.nav{position:sticky;top:0;z-index:100;height:56px;background:rgba(242,242,247,.88);backdrop-filter:blur(20px);border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;}
-[data-theme="dark"] .nav{background:rgba(0,0,0,.8);}
-.nav-left{display:flex;align-items:center;gap:12px;}.back{color:var(--accent);text-decoration:none;font-size:14px;font-weight:500;display:flex;align-items:center;gap:4px;}.nav-title{font-size:16px;font-weight:600;}
-.btn{font-family:var(--sans);font-size:13px;font-weight:500;padding:7px 14px;border-radius:980px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;text-decoration:none;}
-.btn-ghost{background:var(--surface);color:var(--text2);border:.5px solid var(--border2);box-shadow:var(--shadow);}.btn-ghost:hover{background:var(--surface2);}
-.content{max-width:1000px;margin:0 auto;padding:24px 20px 60px;}
-.sec-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:12px;margin-top:24px;}
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:8px;}
-@media(max-width:640px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
-.kpi{background:var(--surface);border:.5px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shadow);}
-.kpi-n{font-size:28px;font-weight:700;line-height:1;margin-bottom:4px;}
-.kpi-l{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;}
-.kpi-sub{font-size:12px;color:var(--text3);margin-top:3px;}
-.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
-@media(max-width:700px){.charts-grid{grid-template-columns:1fr;}}
-.chart-card{background:var(--surface);border:.5px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shadow);}
-.chart-title{font-size:13px;font-weight:600;margin-bottom:14px;}
-.dept-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
-.dept-card{background:var(--surface);border:.5px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--shadow);}
-.dept-name{font-size:13px;font-weight:600;margin-bottom:8px;}
-.dept-bar{height:6px;background:var(--surface3);border-radius:3px;margin-bottom:5px;overflow:hidden;}
-.dept-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .6s ease;}
-.dept-stat{font-size:11px;color:var(--text2);}
-.fin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-.alert-box{background:rgba(255,149,0,.06);border:.5px solid rgba(255,149,0,.25);border-radius:14px;padding:14px 16px;margin-bottom:16px;}
-.alert-title{font-size:13px;font-weight:700;color:#FF9500;margin-bottom:8px;}
-.alert-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:.5px solid rgba(255,149,0,.12);font-size:13px;}
-.alert-item:last-child{border-bottom:none;}
-.al-val{font-weight:700;color:#ff3b30;}
-</style>
-  <link rel="manifest" href="/static/manifest.json">
-  <meta name="theme-color" content="#007AFF">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Tracko">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+  <title>Tracko — Аналитика</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f2f2f7;
+      --surface: rgba(255, 255, 255, 0.85);
+      --surface-solid: #ffffff;
+      --surface2: #f2f2f7;
+      --surface3: #e5e5ea;
+      --border: rgba(0, 0, 0, 0.08);
+      --border2: rgba(0, 0, 0, 0.12);
+      --text: #1c1c1e;
+      --text2: #6c6c70;
+      --text3: #aeaeb2;
+      --accent: #4361EE;
+      --ios-blue: #007AFF;
+      --ios-green: #34C759;
+      --ios-orange: #FF9500;
+      --ios-red: #FF3B30;
+      --r: 16px;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    }
+
+    [data-theme="dark"] {
+      --bg: #000000;
+      --surface: rgba(28, 28, 30, 0.85);
+      --surface-solid: #1c1c1e;
+      --surface2: #2c2c2e;
+      --surface3: #3a3a3c;
+      --border: rgba(255, 255, 255, 0.1);
+      --border2: rgba(255, 255, 255, 0.15);
+      --text: #f5f5f7;
+      --text2: #98989d;
+      --text3: #48484a;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-font-smoothing: antialiased; }
+    body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; overflow-x: hidden; }
+
+    /* Navigation */
+    .nav {
+      position: sticky; top: 0; z-index: 100; height: 60px;
+      background: var(--surface); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: .5px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+    }
+    .nav-left { display: flex; align-items: center; gap: 14px; }
+    .back-btn {
+      color: var(--accent); text-decoration: none; font-size: 15px; font-weight: 500;
+      display: flex; align-items: center; gap: 4px; transition: opacity 0.2s;
+    }
+    .back-btn:active { opacity: 0.6; }
+    .nav-title { font-size: 17px; font-weight: 600; letter-spacing: -0.4px; }
+
+    .btn-export {
+      background: var(--surface2); color: var(--text); padding: 8px 16px;
+      border-radius: 10px; text-decoration: none; font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+    }
+    .btn-export:hover { background: var(--surface3); }
+
+    /* Content Layout */
+    .container { max-width: 1000px; margin: 0 auto; padding: 24px 20px 100px; }
+
+    .sec-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text2); margin-bottom: 12px; margin-top: 32px; }
+
+    /* KPI Row */
+    .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    @media (max-width: 768px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+    
+    .kpi-card {
+      background: var(--surface-solid); border: .5px solid var(--border);
+      border-radius: 18px; padding: 20px 16px; box-shadow: var(--shadow);
+    }
+    .kpi-val { font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 6px; letter-spacing: -1px; }
+    .kpi-lab { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi-badge { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; margin-top: 8px; display: inline-block; }
+
+    /* Alerts */
+    .alert-card {
+      background: rgba(255, 149, 0, 0.05); border: .5px solid rgba(255, 149, 0, 0.2);
+      border-radius: 20px; padding: 20px; margin-bottom: 24px;
+    }
+    .alert-header { display: flex; align-items: center; gap: 10px; color: var(--ios-orange); font-weight: 700; font-size: 15px; margin-bottom: 14px; }
+    .alert-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .alert-item { background: var(--surface-solid); border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .alert-count { font-weight: 700; color: var(--ios-red); font-size: 16px; }
+
+    /* Charts */
+    .charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 16px; }
+    @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
+    
+    .chart-card {
+      background: var(--surface-solid); border: .5px solid var(--border);
+      border-radius: 20px; padding: 24px; box-shadow: var(--shadow);
+    }
+    .chart-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .chart-title { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+
+    /* Dept Grid */
+    .dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+    .dept-card {
+      background: var(--surface-solid); border: .5px solid var(--border);
+      border-radius: 18px; padding: 18px; box-shadow: var(--shadow);
+    }
+    .dept-name { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+    .progress-wrap { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+    .progress-bar { height: 100%; background: var(--accent); border-radius: 4px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
+    .dept-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); font-weight: 500; }
+
+    /* Financials */
+    .fin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    @media (max-width: 768px) { .fin-grid { grid-template-columns: 1fr; } }
+  </style>
 </head>
-<body data-theme="{{ request.cookies.get('theme','') }}">
+<body>
+
+<script>
+  (function() {
+    const t = localStorage.getItem('tracko-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+
 <nav class="nav">
   <div class="nav-left">
-    <a href="/" class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>Главная</a>
+    <a href="/dashboard" class="back-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Главная
+    </a>
     <span class="nav-title">Аналитика</span>
   </div>
-  <a href="/api/reports/export-full" class="btn btn-ghost">↓ Отчёт</a>
+  <a href="/api/reports/export-full" class="btn-export">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Отчёт
+  </a>
 </nav>
-<div class="content">
-  <div class="kpi-grid">
-    <div class="kpi"><div class="kpi-n" id="k-total">—</div><div class="kpi-l">Всего активов</div></div>
-    <div class="kpi"><div class="kpi-n" id="k-occ" style="color:#34c759;">—</div><div class="kpi-l">Занято</div><div class="kpi-sub" id="k-occ-pct"></div></div>
-    <div class="kpi"><div class="kpi-n" id="k-rep" style="color:#ff3b30;">—</div><div class="kpi-l">На ремонте</div></div>
-    <div class="kpi"><div class="kpi-n" id="k-free" style="color:var(--text2);">—</div><div class="kpi-l">Свободно</div></div>
+
+<div class="container">
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-val" id="k-total">0</div>
+      <div class="kpi-lab">Всего активов</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val" id="k-occ" style="color:var(--ios-green);">0</div>
+      <div class="kpi-lab">Занято</div>
+      <div class="kpi-badge" id="k-occ-pct" style="background: rgba(52, 199, 89, 0.1); color: var(--ios-green);">0%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val" id="k-rep" style="color:var(--ios-red);">0</div>
+      <div class="kpi-lab">В ремонте</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val" id="k-free" style="color:var(--text2);">0</div>
+      <div class="kpi-lab">Свободно</div>
+    </div>
   </div>
 
-  <div id="alert-block" style="display:none;" class="alert-box">
-    <div class="alert-title">⚡ Требует внимания</div>
-    <div id="alert-items"></div>
+  <!-- Alerts Block -->
+  <div id="alert-block" style="display:none;" class="alert-card">
+    <div class="alert-header">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Требует внимания
+    </div>
+    <div id="alert-items" class="alert-grid"></div>
   </div>
 
+  <!-- Main Charts -->
   <div class="charts-grid">
-    <div class="chart-card"><div class="chart-title">По категориям</div><canvas id="ch-cat" height="200"></canvas></div>
-    <div class="chart-card"><div class="chart-title">Состояние активов</div><canvas id="ch-cond" height="200"></canvas></div>
+    <div class="chart-card">
+      <div class="chart-hdr"><div class="chart-title">По категориям</div></div>
+      <div style="height: 240px; position: relative;">
+        <canvas id="ch-cat"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-hdr"><div class="chart-title">Состояние активов</div></div>
+      <div style="height: 240px; position: relative;">
+        <canvas id="ch-cond"></canvas>
+      </div>
+    </div>
   </div>
-  <div class="chart-card" style="margin-bottom:16px;"><div class="chart-title">Активность за 30 дней</div><canvas id="ch-act" height="90"></canvas></div>
 
-  <div class="sec-hdr">По отделам</div>
+  <div class="chart-card" style="margin-bottom: 32px;">
+    <div class="chart-hdr">
+      <div class="chart-title">Активность (30 дней)</div>
+      <div id="act-sum" style="font-size: 13px; color: var(--text2); font-weight: 600;"></div>
+    </div>
+    <div style="height: 200px; position: relative;">
+      <canvas id="ch-act"></canvas>
+    </div>
+  </div>
+
+  <div class="sec-title">По отделам</div>
   <div class="dept-grid" id="dept-grid"></div>
 
-  <div class="sec-hdr">Финансы</div>
+  <div class="sec-title">Финансы</div>
   <div class="fin-grid" id="fin-grid"></div>
 </div>
+
 <script>
-const isDark=document.documentElement.dataset.theme==='dark'||(window.matchMedia('(prefers-color-scheme:dark)').matches&&!document.documentElement.dataset.theme);
-const COLORS=['#007AFF','#34C759','#FF9500','#AF52DE','#5856D6','#FF3B30','#5AC8FA','#30B0C7','#FF375F','#FFD60A'];
-async function load(){
-  const [stats,analytics,fin,notif]=await Promise.all([
-    fetch('/api/stats').then(r=>r.json()).catch(()=>({})),
-    fetch('/api/analytics').then(r=>r.json()).catch(()=>({})),
-    fetch('/api/financials').then(r=>r.json()).catch(()=>({})),
-    fetch('/api/notifications').then(r=>r.json()).catch(()=>({total:0,items:[]})),
-  ]);
-  const total=stats.total||0,occ=stats.occupied||0,rep=stats.repair||0,free=stats.free||0;
-  document.getElementById('k-total').textContent=total;
-  document.getElementById('k-occ').textContent=occ;
-  document.getElementById('k-occ-pct').textContent=total?`${Math.round(occ/total*100)}% утилизация`:'';
-  document.getElementById('k-rep').textContent=rep;
-  document.getElementById('k-free').textContent=free;
-  if(notif.total>0){
-    document.getElementById('alert-block').style.display='block';
-    document.getElementById('alert-items').innerHTML=(notif.items||[]).map(i=>`<div class="alert-item"><span>${i.label}</span><span class="al-val">${i.count}</span></div>`).join('');
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const COLORS = ['#4361EE', '#34C759', '#FF9500', '#AF52DE', '#FF3B30', '#5AC8FA', '#30B0C7', '#FF375F', '#A2845E', '#8E8E93'];
+  const FONT = "'Inter', -apple-system, sans-serif";
+  
+  async function loadData() {
+    try {
+      const [stats, analytics, fin, notif] = await Promise.all([
+        fetch('/api/stats').then(r => r.json()).catch(() => ({})),
+        fetch('/api/analytics').then(r => r.json()).catch(() => ({})),
+        fetch('/api/financials').then(r => r.json()).catch(() => ({})),
+        fetch('/api/notifications').then(r => r.json()).catch(() => ({ total: 0, items: [] }))
+      ]);
+
+      const total = stats.total || 0, occ = stats.occupied || 0, rep = stats.repair || 0, free = stats.free || 0;
+      document.getElementById('k-total').textContent = total;
+      document.getElementById('k-occ').textContent = occ;
+      const pct = total ? Math.round(occ / total * 100) : 0;
+      document.getElementById('k-occ-pct').textContent = pct + '% утилизация';
+      document.getElementById('k-rep').textContent = rep;
+      document.getElementById('k-free').textContent = free;
+
+      if (notif.total > 0) {
+        document.getElementById('alert-block').style.display = 'block';
+        document.getElementById('alert-items').innerHTML = (notif.items || []).map(i => `
+          <div class="alert-item"><span>${i.label}</span><span class="alert-count">${i.count}</span></div>
+        `).join('');
+      }
+
+      // Charts Config Defaults
+      Chart.defaults.font.family = FONT;
+      Chart.defaults.color = isDark ? '#98989d' : '#6c6c70';
+      const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+      // 1. Categories (Doughnut)
+      const catData = stats.by_category || [];
+      if (catData.length) {
+        new Chart(document.getElementById('ch-cat'), {
+          type: 'doughnut',
+          data: {
+            labels: catData.map(c => c.category),
+            datasets: [{
+              data: catData.map(c => c.count),
+              backgroundColor: COLORS,
+              borderWidth: 0,
+              hoverOffset: 10
+            }]
+          },
+          options: {
+            cutout: '70%',
+            plugins: {
+              legend: { position: 'right', labels: { boxWidth: 8, padding: 15, usePointStyle: true } }
+            },
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+      }
+
+      // 2. Condition (Bar)
+      const condData = stats.by_condition || [];
+      if (condData.length) {
+        const CC = { 'Хорошее': '#34C759', 'Потёрто': '#FF9500', 'Требует ремонта': '#FF3B30', 'Списано': '#8E8E93', 'Утеряно': '#1c1c1e' };
+        new Chart(document.getElementById('ch-cond'), {
+          type: 'bar',
+          data: {
+            labels: condData.map(c => c.condition),
+            datasets: [{
+              data: condData.map(c => c.count),
+              backgroundColor: condData.map(c => CC[c.condition] || '#4361EE'),
+              borderRadius: 8,
+              maxBarThickness: 40
+            }]
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, grid: { color: gridColor }, border: { display: false } },
+              x: { grid: { display: false }, border: { display: false } }
+            },
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+      }
+
+      // 3. Activity (Line)
+      const actData = analytics.activity_30d || [];
+      if (actData.length) {
+        const sum = actData.reduce((a, b) => a + (b.count || 0), 0);
+        document.getElementById('act-sum').textContent = sum + ' действий всего';
+        
+        new Chart(document.getElementById('ch-act'), {
+          type: 'line',
+          data: {
+            labels: actData.map(d => d.date || d.day || ''),
+            datasets: [{
+              data: actData.map(d => d.count || 0),
+              borderColor: '#4361EE',
+              borderWidth: 3,
+              tension: 0.4,
+              fill: true,
+              backgroundColor: ctx => {
+                const bg = ctx.chart.ctx.createLinearGradient(0, 0, 0, 150);
+                bg.addColorStop(0, 'rgba(67, 97, 238, 0.2)');
+                bg.addColorStop(1, 'rgba(67, 97, 238, 0)');
+                return bg;
+              },
+              pointRadius: 0,
+              pointHoverRadius: 6,
+              pointHoverBackgroundColor: '#4361EE',
+              pointHoverBorderColor: '#fff',
+              pointHoverBorderWidth: 2
+            }]
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, grid: { color: gridColor }, border: { display: false }, ticks: { maxTicksLimit: 5 } },
+              x: { grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 10 } }
+            },
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+      }
+
+      // 4. Depts
+      const depts = analytics.dept_utilization || [];
+      const dg = document.getElementById('dept-grid');
+      if (depts.length) {
+        dg.innerHTML = depts.map(d => {
+          const upct = d.total ? Math.round(d.occupied / d.total * 100) : 0;
+          return `
+            <div class="dept-card">
+              <div class="dept-name">${d.department || 'Без отдела'}</div>
+              <div class="progress-wrap"><div class="progress-bar" style="width: ${upct}%"></div></div>
+              <div class="dept-meta">
+                <span>${d.occupied} / ${d.total}</span>
+                <span style="font-weight: 700; color: var(--accent)">${upct}%</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        dg.innerHTML = '<div style="color:var(--text3); font-size:14px; padding:20px;">Нет данных по отделам</div>';
+      }
+
+      // 5. Financials
+      const fg = document.getElementById('fin-grid');
+      if (fin.total_purchase_value) {
+        const fmt = v => new Intl.NumberFormat('ru', { maximumFractionDigits: 0 }).format(v) + ' UZS';
+        fg.innerHTML = `
+          <div class="kpi-card">
+            <div class="kpi-val" style="font-size: 20px;">${fmt(fin.total_purchase_value)}</div>
+            <div class="kpi-lab">Балансовая стоимость</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-val" style="font-size: 20px; color: var(--ios-green);">${fmt(fin.total_residual_value)}</div>
+            <div class="kpi-lab">Остаточная стоимость</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-val" style="font-size: 20px; color: var(--ios-orange);">${fin.depreciation_pct || 0}%</div>
+            <div class="kpi-lab">Общая амортизация</div>
+          </div>
+        `;
+      } else {
+        fg.innerHTML = '<div style="grid-column: span 3; color:var(--text3); font-size:14px; padding:20px; text-align:center;">Добавьте стоимость закупки в карточки активов для анализа финансов.</div>';
+      }
+
+    } catch (e) {
+      console.error(e);
+    }
   }
-  const gc=s=>({color:isDark?'rgba(255,255,255,.4)':'rgba(0,0,0,.3)',font:{family:'Inter'}});
-  const cat=stats.by_category||[];
-  if(cat.length){new Chart(document.getElementById('ch-cat'),{type:'doughnut',data:{labels:cat.map(c=>c.category),datasets:[{data:cat.map(c=>c.count),backgroundColor:COLORS,borderWidth:0}]},options:{plugins:{legend:{position:'right',labels:{color:isDark?'#98989d':'#6c6c70',font:{family:'Inter',size:11}}}},responsive:true}});}
-  const cond=stats.by_condition||[];
-  if(cond.length){const CC={Хорошее:'#34C759',Потёрто:'#FF9500','Требует ремонта':'#FF3B30',Списано:'#8E8E93',Утеряно:'#FF3B30'};new Chart(document.getElementById('ch-cond'),{type:'bar',data:{labels:cond.map(c=>c.condition),datasets:[{data:cond.map(c=>c.count),backgroundColor:cond.map(c=>CC[c.condition]||'#007AFF'),borderRadius:6}]},options:{plugins:{legend:{display:false}},responsive:true,scales:{y:{beginAtZero:true,ticks:gc(),grid:{color:isDark?'rgba(255,255,255,.05)':'rgba(0,0,0,.05)'}},x:{ticks:gc(),grid:{display:false}}}}});}
-  const act=analytics.activity_30d||[];
-  if(act.length){new Chart(document.getElementById('ch-act'),{type:'line',data:{labels:act.map(d=>d.date||d.day||''),datasets:[{label:'Изменений',data:act.map(d=>d.count||d.changes||0),borderColor:'#007AFF',backgroundColor:'rgba(0,122,255,.08)',tension:.4,fill:true,pointRadius:0}]},options:{plugins:{legend:{display:false}},responsive:true,scales:{y:{beginAtZero:true,ticks:gc(),grid:{color:isDark?'rgba(255,255,255,.05)':'rgba(0,0,0,.05)'}},x:{ticks:{...gc(),maxTicksLimit:8},grid:{display:false}}}}});}
-  const depts=analytics.dept_utilization||[];
-  const dg=document.getElementById('dept-grid');
-  if(depts.length){dg.innerHTML=depts.map(d=>{const pct=d.total?Math.round(d.occupied/d.total*100):0;return`<div class="dept-card"><div class="dept-name">${d.department||'Без отдела'}</div><div class="dept-bar"><div class="dept-fill" style="width:${pct}%"></div></div><div class="dept-stat">${d.occupied||0} / ${d.total||0} (${pct}%)</div></div>`;}).join('');}
-  else dg.innerHTML='<div style="color:var(--text3);font-size:13px;">Нет данных по отделам</div>';
-  const fg=document.getElementById('fin-grid');
-  if(fin.total_purchase_value){const fmt=v=>v?new Intl.NumberFormat('ru',{maximumFractionDigits:0}).format(v)+' UZS':'—';fg.innerHTML=`<div class="kpi"><div class="kpi-n" style="font-size:18px;">${fmt(fin.total_purchase_value)}</div><div class="kpi-l">Балансовая стоимость</div></div><div class="kpi"><div class="kpi-n" style="font-size:18px;color:#34c759;">${fmt(fin.total_residual_value)}</div><div class="kpi-l">Остаточная стоимость</div></div><div class="kpi"><div class="kpi-n" style="font-size:18px;color:#FF9500;">${fin.depreciation_pct||0}%</div><div class="kpi-l">Амортизация</div></div>`;}
-  else fg.innerHTML='<div style="color:var(--text3);font-size:13px;">Добавьте цены закупки к активам</div>';
-}
-load();
+
+  loadData();
 </script>
-</body></html>
+</body>
+</html>

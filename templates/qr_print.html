@@ -649,84 +649,26 @@ function applyPrintClass() {
 function printItems(itemsList) {
   if(!itemsList.length) { toast('Нет этикеток для печати','err'); return; }
 
-  const printWin = window.open('', '_blank', 'width=900,height=700');
-  if(!printWin) {
-    alert('Браузер заблокировал всплывающее окно. Пожалуйста, разрешите всплывающие окна для этого сайта.');
-    return;
+  const pg = document.getElementById('print-grid');
+  pg.innerHTML = buildPrintHtml(itemsList);
+  applyPrintClass();
+
+  const imgs = pg.querySelectorAll('img');
+  if(!imgs.length) { window.print(); return; }
+
+  toast('Загружаем QR-коды…','ok');
+  let loaded = 0;
+  const total = imgs.length;
+  function tryPrint() {
+    loaded++;
+    if(loaded >= total) { setTimeout(() => window.print(), 150); }
   }
-
-  // Робастный CSS для всех размеров
-  let sizeStyles = '';
-  if(paperSize === '58') {
-    sizeStyles = '@page { size: 58mm 40mm; margin: 0; } .print-label { width: 58mm; height: 40mm; } .pl-qr img { max-width: 28mm; }';
-  } else if(paperSize === '80') {
-    sizeStyles = '@page { size: 80mm 50mm; margin: 0; } .print-label { width: 80mm; height: 50mm; } .pl-qr img { max-width: 35mm; }';
-  } else {
-    sizeStyles = '@page { size: A4 portrait; margin: 10mm; } .print-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; } .print-label { border: 1px dashed #ccc; padding: 5mm; page-break-inside: avoid; }';
-  }
-
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Tracko Print</title>
-      <style>
-        body { margin: 0; padding: 0; background: #fff; color: #000; font-family: "Helvetica", Arial, sans-serif; }
-        ${sizeStyles}
-        .print-label { 
-          display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-          box-sizing: border-box; overflow: hidden; page-break-after: always; padding: 2mm;
-        }
-        .pl-qr { margin-bottom: 1mm; }
-        .pl-qr img { height: auto; image-rendering: crisp-edges; }
-        .pl-inv { 
-          font-size: 18px; font-weight: 900; margin: 0; padding: 0;
-          font-family: 'Courier New', ui-monospace, monospace; color: #000 !important; display: block;
-        }
-        .pl-info-wrap { 
-          width: 100%; border-top: 2px solid #000; margin-top: 1mm; padding-top: 1mm;
-          text-align: left; color: #000 !important; overflow: hidden;
-        }
-        .pl-name { font-size: 14px; font-weight: 800; margin-bottom: 1px; display: block; color: #000 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .pl-detail { font-size: 11px; color: #000 !important; display: block; margin-top: 1px; }
-      </style>
-    </head>
-    <body>
-      <div class="print-grid">
-        ${buildPrintHtml(itemsList)}
-      </div>
-      <script>
-        // Print triggered by parent window after images load
-      <\/script>
-    </body>
-    </html>
-  `;
-
-  printWin.document.write(html);
-  printWin.document.close();
-
-  // Wait for images to load before printing
-  printWin.onload = function() {
-    const imgs = printWin.document.querySelectorAll('img');
-    if (!imgs.length) {
-      setTimeout(() => { try { printWin.print(); } catch(e){} }, 300);
-      return;
-    }
-    let loaded = 0;
-    const total = imgs.length;
-    function tryPrint() {
-      loaded++;
-      if (loaded >= total) {
-        setTimeout(() => { try { printWin.print(); } catch(e){} }, 200);
-      }
-    }
-    imgs.forEach(img => {
-      if (img.complete && img.naturalWidth > 0) tryPrint();
-      else { img.onload = tryPrint; img.onerror = tryPrint; }
-    });
-    // Absolute fallback: print after 4s regardless
-    setTimeout(() => { try { printWin.print(); } catch(e){} }, 4000);
-  };
+  imgs.forEach(img => {
+    if(img.complete && img.naturalWidth > 0) tryPrint();
+    else { img.onload = tryPrint; img.onerror = tryPrint; }
+  });
+  // Fallback: print after 4s regardless
+  setTimeout(() => window.print(), 4000);
 }
 
 function printAll()      { printItems(filtered); }
@@ -765,6 +707,13 @@ let _t; function toast(msg,type='ok'){
   t.className='toast '+type+' show';
   clearTimeout(_t);_t=setTimeout(()=>t.classList.remove('show'),3000);
 }
+
+/* ─── After print: restore page ─── */
+window.addEventListener('afterprint', () => {
+  const pg = document.getElementById('print-grid');
+  pg.innerHTML = '';
+  document.body.className = '';
+});
 
 /* ─── INIT ─── */
 filtered = ALL_ITEMS.slice();

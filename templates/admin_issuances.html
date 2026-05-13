@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="{{ request.cookies.get('theme','') }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tracko — Выдачи</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#f2f2f7;--surface:#fff;--surface2:#f2f2f7;--surface3:#e5e5ea;--border:rgba(0,0,0,0.09);--text:#1c1c1e;--text2:#6c6c70;--text3:#aeaeb2;--accent:#007AFF;--green:#34C759;--r:12px;--sans:'Inter',system-ui,sans-serif;}
+[data-theme="dark"]{--bg:#000;--surface:#1c1c1e;--surface2:#2c2c2e;--surface3:#3a3a3c;--border:rgba(255,255,255,.08);--text:#f5f5f7;--text2:#98989d;--text3:#48484a;}
+html{-webkit-font-smoothing:antialiased;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
+.nav{position:sticky;top:0;z-index:100;height:56px;background:rgba(242,242,247,.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;}
+[data-theme="dark"] .nav{background:rgba(0,0,0,.8);}
+.nav-left{display:flex;align-items:center;gap:14px;}
+.back{color:var(--accent);text-decoration:none;font-size:14px;font-weight:500;display:flex;align-items:center;gap:5px;}
+.nav-title{font-size:16px;font-weight:600;}
+.content{max-width:900px;margin:0 auto;padding:24px 20px 60px;}
+.card{background:var(--surface);border:.5px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:20px;}
+table{width:100%;border-collapse:collapse;}
+th{padding:10px 16px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);border-bottom:.5px solid var(--border);}
+tbody tr{border-bottom:.5px solid var(--border);transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+td{padding:13px 16px;font-size:13px;vertical-align:middle;}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:980px;}
+.b-confirmed{background:rgba(52,199,89,.12);color:var(--green);}
+.b-pending{background:rgba(255,149,0,.12);color:#FF9500;}
+.btn{font-family:var(--sans);font-size:12px;font-weight:500;padding:6px 14px;border-radius:980px;border:none;cursor:pointer;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px;}
+.btn-ghost{background:var(--surface2);color:var(--text2);border:.5px solid var(--border);}
+.btn-ghost:hover{background:var(--surface3);}
+.empty{text-align:center;padding:48px 20px;color:var(--text3);}
+.empty-ico{font-size:36px;margin-bottom:12px;}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-left">
+    <a href="/dashboard" class="back">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Назад
+    </a>
+    <span class="nav-title">Выдачи техники</span>
+  </div>
+</nav>
+
+<div class="content">
+  {% if issuances %}
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Сотрудник</th>
+          <th>Выдал</th>
+          <th>Единиц</th>
+          <th>Дата</th>
+          <th>Статус</th>
+          <th>Акт</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for iss in issuances %}
+        <tr>
+          <td style="font-family:monospace;color:var(--text3);">{{ iss.id }}</td>
+          <td style="font-weight:600;">{{ iss.employee_name }}</td>
+          <td style="color:var(--text2);">{{ iss.issued_by_name }}</td>
+          <td>{{ iss.item_count }}</td>
+          <td style="color:var(--text3);font-size:12px;">{{ iss.created_at[:10] if iss.created_at else '—' }}</td>
+          <td>
+            {% if iss.status == 'confirmed' %}
+            <span class="badge b-confirmed">Подтверждено</span>
+            {% else %}
+            <span class="badge b-pending">Ожидает</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="/issuances/{{ iss.id }}/print-act" target="_blank" class="btn btn-ghost">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Акт
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <div class="empty-ico">📦</div>
+    <div style="font-size:15px;font-weight:500;margin-bottom:6px;">Нет записей о выдаче</div>
+    <div style="font-size:13px;">Выдачи появятся здесь после оформления через API или форму.</div>
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>
